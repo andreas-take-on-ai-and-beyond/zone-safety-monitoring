@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>5-Layer Event-Driven Agentic AI Architecture | IBM watsonx Orchestrate + Kafka + Flink</title>
+  
+  <!-- IBM Plex Sans & IBM Plex Mono Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      /* Carbon Gray 90 / 100 Dark Theme Tokens */
+      --cds-background: #161616;
+      --cds-layer-01: #262626;
+      --cds-layer-02: #333333;
+      --cds-layer-03: #393939;
+      --cds-layer-hover: #3d3d3d;
+      --cds-border-subtle: #393939;
+      --cds-border-strong: #6f6f6f;
+      --cds-text-primary: #f4f4f4;
+      --cds-text-secondary: #c6c6c6;
+      --cds-text-helper: #8d8d8d;
+      --cds-text-on-color: #ffffff;
+      
+      /* Carbon Semantic Colors */
+      --cds-blue-60: #0f62fe;
+      --cds-blue-70: #0043ce;
+      --cds-purple-60: #8a3ffc;
+      --cds-purple-70: #6929c4;
+      --cds-teal-60: #0072c3;
+      --cds-teal-70: #005d5d;
+      --cds-green-60: #198038;
+      --cds-green-50: #24a148;
+      --cds-red-60: #da1e28;
+      --cds-red-50: #fa4d56;
+      --cds-yellow-30: #f1c21b;
+      --cds-magenta-60: #d12771;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--cds-background);
+      color: var(--cds-text-primary);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 3rem;
+    }
+
+    code, pre {
+      font-family: 'IBM Plex Mono', 'Menlo', 'Monaco', monospace;
+    }
+
+    /* Top Navigation / Header */
+    header {
+      background-color: #161616;
+      border-bottom: 1px solid var(--cds-border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-ibm {
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--cds-text-primary);
+      font-size: 1.1rem;
+    }
+
+    .brand-title {
+      font-weight: 400;
+      color: var(--cds-text-secondary);
+      font-size: 1.05rem;
+      border-left: 1px solid var(--cds-border-strong);
+      padding-left: 0.75rem;
+    }
+
+    .header-badges {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 0.2rem 0.5rem;
+      border-radius: 2px;
+    }
+    .tag-blue { background: #002d9c; color: #edf5ff; }
+    .tag-purple { background: #491d8b; color: #f6f2ff; }
+    .tag-green { background: #0e4c21; color: #defbe6; }
+    .tag-red { background: #750e13; color: #fff1f1; }
+    .tag-teal { background: #004144; color: #d9fbfb; }
+
+    /* Main Container */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    /* Hero Section */
+    .hero {
+      background: linear-gradient(135deg, #1f2430 0%, #161616 100%);
+      border: 1px solid var(--cds-border-subtle);
+      border-radius: 4px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      right: -100px;
+      top: -100px;
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, rgba(15,98,254,0.15) 0%, rgba(138,63,252,0.05) 50%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-title {
+      font-size: 2.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+
+    .hero-subtitle {
+      font-size: 1.1rem;
+      color: var(--cds-text-secondary);
+      max-width: 900px;
+      line-height: 1.6;
+    }
+
+    /* Live Layer Navigation Pipeline */
+    .pipeline-container {
+      background: var(--cds-layer-01);
+      border: 1px solid var(--cds-border-subtle);
+      border-radius: 4px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--cds-text-primary);
+    }
+
+    .pipeline-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+
+    @media (max-width: 1100px) {
+      .pipeline-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 650px) {
+      .pipeline-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .layer-card-btn {
+      background: var(--cds-layer-02);
+      border: 1px solid var(--cds-border-subtle);
+      border-radius: 4px;
+      padding: 1.25rem 1rem;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.2, 0, 0.38, 0.9);
+      color: var(--cds-text-primary);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 140px;
+    }
+
+    .layer-card-btn:hover {
+      background: var(--cds-layer-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .layer-card-btn.active {
+      background: var(--cds-layer-03);
+      border-width: 2px;
+      box-shadow: 0 0 15px rgba(15, 98, 254, 0.25);
+    }
+
+    .layer-btn-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .layer-number {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 0.15rem 0.45rem;
+      border-radius: 2px;
+      color: #fff;
+    }
+
+    .layer-btn-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      color: #ffffff;
+    }
+
+    .layer-btn-tech {
+      font-size: 0.78rem;
+      color: var(--cds-text-secondary);
+      line-height: 1.3;
+    }
+
+    .layer-indicator {
+      margin-top: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--cds-blue-60);
+    }
+
+    /* Active Layer Inspector (Deep Dive) */
+    .inspector-panel {
+      background: var(--cds-layer-01);
+      border: 1px solid var(--cds-border-subtle);
+      border-radius: 4px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .inspector-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--cds-border-subtle);
+      margin-bottom: 1.5rem;
+    }
+
+    .inspector-layer-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .inspector-title {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .inspector-subtitle {
+      font-size: 1.05rem;
+      color: var(--cds-text-secondary);
+    }
+
+    .inspector-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 992px) {
+      .inspector-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .info-card {
+      background: var(--cds-layer-02);
+      border: 1px solid var(--cds-border-subtle);
+      border-radius: 4px;
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .info-card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--cds-text-secondary);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .spec-list {
+      list-style: none;
+    }
+
+    .spec-item {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--cds-border-subtle);
+      display: flex;
+      font-size: 0.9rem;
+    }
+
+    .spec-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .spec-label {
+      width: 140px;
+      flex-shrink: 0;
+      font-weight: 600;
+      color: var(--cds-text-helper);
+    }
+
+    .spec-value {
+      color: var(--cds-text-primary);
+      flex-grow: 1;
+    }
+
+    .bullet-list {
+      list-style: none;
+    }
+
+    .bullet-item {
+      position: relative;
+      padding-left: 1.25rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.92rem;
+      color: var(--cds-text-secondary);
+      line-height: 1.5;
+    }
+
+    .bullet-item::before {
+      content: "▪";
+      position: absolute;
+      left: 0;
+      color: var(--cds-blue-60);
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    .key-insight-box {
+      background: rgba(15, 98, 254, 0.1);
+      border-left: 4px solid var(--cds-blue-60);
+      padding: 1rem 1.25rem;
+      border-radius: 0 4px 4px 0;
+      margin-top: 1rem;
+    }
+
+    .key-insight-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #78a9ff;
+      margin-bottom: 0.25rem;
+    }
+
+    .key-insight-text {
+      font-size: 0.9rem;
+      color: var(--cds-text-primary);
+    }
+
+    .code-box {
+      background: #121212;
+      border: 1px solid var(--cds-border-subtle);
+      border-radius: 4px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: #f4f4f4;
+    }
+
+    /* Interactive Scenarios Tab View */
+    .interactive-section {
+      background: var(--cds-layer-01);
+      border: 1px solid var(--cds-border-subtle);
+      border-radius: 4px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .scenario-tabs {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .scenario-tab-btn {
+      background: var(--cds-layer-02);
+      border: 1px solid var(--cds-border-subtle);
+      color: var(--cds-text-secondary);
+      padding: 0.75rem 1.25rem;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .scenario-tab-btn:hover {
+      background: var(--cds-layer-hover);
+      color: var(--cds-text-primary);
+    }
+
+    .scenario-tab-btn.active {
+      background: var(--cds-layer-03);
+      border-color: var(--cds-blue-60);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(15, 98, 254, 0.3);
+    }
+
+    .scenario-flow-container {
+      background: var(--cds-layer-02);
+      border: 1px solid var(--cds-border-subtle);
+      border-radius: 4px;
+      padding: 1.5rem;
+    }
+
+    .scenario-step {
+      display: flex;
+      gap: 1.25rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--cds-border-subtle);
+      align-items: flex-start;
+    }
+
+    .scenario-step:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .scenario-step-badge {
+      width: 170px;
+      flex-shrink: 0;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.35rem 0.65rem;
+      border-radius: 3px;
+      text-align: center;
+    }
+
+    .scenario-step-desc {
+      font-size: 0.95rem;
+      color: var(--cds-text-primary);
+      line-height: 1.5;
+    }
+
+    /* Economics / Token Shield Section */
+    .economics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    @media (max-width: 900px) {
+      .economics-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .econ-card {
+      background: var(--cds-layer-02);
+      border: 1px solid var(--cds-border-subtle);
+      border-radius: 4px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .econ-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .econ-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--cds-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.5rem;
+    }
+
+    .econ-desc {
+      font-size: 0.85rem;
+      color: var(--cds-text-helper);
+    }
+
+    /* Footer */
+    footer {
+      max-width: 1400px;
+      margin: 3rem auto 0;
+      padding: 1.5rem;
+      border-top: 1px solid var(--cds-border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--cds-text-helper);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-ibm">IBM</span>
+        <span class="brand-title">Zone Safety Command Center — Architectural Blueprint</span>
+      </div>
+      <div class="header-badges">
+        <span class="tag tag-blue">Event-Driven Streaming</span>
+        <span class="tag tag-purple">watsonx Orchestrate</span>
+        <span class="tag tag-green">Carbon Design v11</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- Hero Title & Architecture Summary -->
+    <div class="hero">
+      <div style="display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+        <span class="tag tag-blue">Technical Reference Blueprint</span>
+        <span class="tag tag-teal">Real-Time Industrial IoT</span>
+      </div>
+      <h1 class="hero-title">5-Layer Event-Driven Agentic AI Architecture</h1>
+      <p class="hero-subtitle">
+        An interactive presentation walkthrough demonstrating how <strong>Apache Kafka</strong> and <strong>Apache Flink</strong> provide high-frequency stream aggregation and the <em>"Token Shield"</em> to feed qualified, context-rich anomaly events to an <strong>IBM watsonx Orchestrate</strong> autonomous agent.
+      </p>
+    </div>
+
+    <!-- Interactive 5-Layer Interactive Flow Bar -->
+    <div class="pipeline-container">
+      <div class="section-header">
+        <h2 class="section-title">End-to-End Architectural Pipeline (Click any layer to inspect)</h2>
+        <span style="font-size: 0.85rem; color: var(--cds-text-secondary);">Interactive Presentation Mode</span>
+      </div>
+      <div class="pipeline-grid" id="pipelineNavGrid">
+        <!-- Rendered dynamically via JavaScript -->
+      </div>
+    </div>
+
+    <!-- Layer Detail Deep-Dive Inspector -->
+    <div class="inspector-panel" id="layerInspector">
+      <!-- Content populated dynamically via updateLayerInspector() -->
+    </div>
+
+    <!-- Interactive Scenario Walkthroughs -->
+    <div class="interactive-section">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Live Production Scenarios &amp; End-to-End Flow</h2>
+          <p style="font-size: 0.9rem; color: var(--cds-text-secondary); margin-top: 0.25rem;">
+            Explore how data flows through the 5 layers during normal operations vs. minor transients vs. critical emergency events.
+          </p>
+        </div>
+      </div>
+
+      <div class="scenario-tabs" id="scenarioTabs">
+        <!-- Buttons rendered dynamically -->
+      </div>
+
+      <div class="scenario-flow-container" id="scenarioFlow">
+        <!-- Scenario steps rendered dynamically -->
+      </div>
+    </div>
+
+
+  </div>
+
+  <footer>
+    <div>Built with <strong>IBM watsonx Orchestrate</strong> &amp; <strong>Carbon Design System</strong></div>
+    <div>Demonstration &amp; Architecture Presentation Material</div>
+  </footer>
+
+  <script>
+    const ARCHITECTURE_DATA = [
+      {
+        id: 1,
+        shortName: 'Layer 1: Producers',
+        fullName: 'Layer 1: Sensor Producers',
+        subtitle: 'Physical Event Simulation & High-Frequency Ingestion',
+        color: '#0f62fe',
+        badge: 'Edge / Physical Stream',
+        tech: 'Python (sensor_cnc.py, sensor_assembly.py) → Apache Kafka (env_sensor_data)',
+        input: 'Physical environment dynamics & scenario parameters (SCENARIO env var)',
+        output: '5-second raw multi-signal JSON telemetry ticks to Kafka topic env_sensor_data',
+        details: [
+          'Simulates live CNC Machining (Zone A) & Electronics Assembly (Zone B) industrial sensor rigs.',
+          'Streams 5 core signals concurrently: Temperature (°C), Humidity (%), CO₂ (ppm), CO (ppm), PM2.5 (µg/m³).',
+          'Injects realistic physical failure signatures: Tool Binding Fire, Coolant Leaks, Bearing Overheating, Fume Extractor Failure, ESD Humidity Drops, or normal shop-floor baseline shifts.'
+        ],
+        codeSnippet: `# sensor_cnc.py / sensor_assembly.py -> Kafka Producer
+payload = {
+  "timestamp": "2026-08-17 14:32:10",
+  "sensor_id": "ENV_SENSOR_ZONE_CNC",
+  "zone": "CNC_Machining",
+  "temperature_c": 41.2,
+  "humidity_pct": 31.0,
+  "co2_ppm": 820.0,
+  "co_ppm": 29.0,
+  "pm25_ugm3": 42.0
+}
+producer.produce('env_sensor_data', key=sensor_id, value=json.dumps(payload))`,
+        keyInsight: 'Raw physical telemetry is high-volume and noisy. Direct piping into LLMs creates alarm flooding, rapid quota exhaustion, and immense token costs.'
+      },
+      {
+        id: 2,
+        shortName: 'Layer 2: Token Shield',
+        fullName: 'Layer 2: Stream Processing & Rationalization',
+        subtitle: 'The "Token Shield" & Temporal Window Aggregation',
+        color: '#8a3ffc',
+        badge: 'Stream Processing (Flink)',
+        tech: 'Apache Flink 1.18.1 (init_job.sql) → Kafka (sensor_alerts topic)',
+        input: 'High-frequency telemetry stream from Kafka topic env_sensor_data',
+        output: 'Windowed & rationalized alert events to Kafka topic sensor_alerts (max 1 alert/sensor/60s)',
+        details: [
+          'Applies 60-second tumbling window aggregation (12 consecutive 5-second readings) with event-time watermarking.',
+          'Absorbs transient single-tick spikes (e.g. 5-second chip blow-off dust puff) locally in Flink state without triggering alarms.',
+          'Evaluates calibrated multi-signal thresholds: Zone-specific Temp (>38°C CNC vs >26°C Assembly), Life-Safety (CO > 15 ppm, PM2.5 > 35 µg/m³), and ESD floor (Humidity < 30%).',
+          'Design Boundary: Flink decides IF an event warrants escalation, leaving root cause reasoning to the AI agent.'
+        ],
+        codeSnippet: `-- init_job.sql (Flink SQL Tumbling Window Aggregation)
+INSERT INTO sink_sensor_alerts
+SELECT
+    CAST(TUMBLE_END(event_time, INTERVAL '60' SECOND) AS STRING) AS \`timestamp\`,
+    sensor_id, zone, 'ENVIRONMENT_ALERT' AS alert_type,
+    AVG(temperature_c) AS temperature_c,
+    AVG(humidity_pct)  AS humidity_pct,
+    AVG(co_ppm)        AS co_ppm,
+    AVG(pm25_ugm3)     AS pm25_ugm3
+FROM TABLE(TUMBLE(TABLE source_sensor_data, DESCRIPTOR(event_time), INTERVAL '60' SECOND))
+GROUP BY TUMBLE(event_time, INTERVAL '60' SECOND), sensor_id, zone
+HAVING (sensor_id = 'ENV_SENSOR_ZONE_CNC' AND AVG(temperature_c) > 38.0)
+    OR AVG(co_ppm) > 15.0
+    OR AVG(pm25_ugm3) > 35.0
+    OR (sensor_id = 'ENV_SENSOR_ZONE_ASSEMBLY' AND AVG(humidity_pct) < 30.0);`,
+        keyInsight: 'The Token Shield achieves a 12x reduction in event volume. Flink handles stream physics so the LLM only receives qualified anomalies.'
+      },
+      {
+        id: 3,
+        shortName: 'Layer 3: Agent Bridge',
+        fullName: 'Layer 3: Agent Bridge & Rate Limiter',
+        subtitle: 'SCADA Cooldown & Telemetry Bifurcation',
+        color: '#0072c3',
+        badge: 'Event Bridge & Cooldown',
+        tech: 'Python (agent_bridge.py) + Confluent Kafka Consumer (Dual-Threaded)',
+        input: 'Aggregated alerts from sensor_alerts topic + Raw ticks from env_sensor_data',
+        output: 'Invocations to wxO REST API + Real-time UI telemetry logs (sensor_log.json, alert_history.json)',
+        details: [
+          'Implements ISA-18.2 / IEC 62682 industrial alarm suppression standard via 180s per-sensor cooldown timer.',
+          'Bifurcates streams: Daemon thread streams raw 5s ticks to sensor_log.json for live UI graphing, while Main thread guards wxO agent dispatching.',
+          'Seeds in-memory recurrence counter from alert_history.json to inform the LLM of repeat or sustained incidents across restarts.',
+          'Extracts structured DISPATCH_PAYLOAD::{...} emitted by the agent and commits full audit history to dashboard_log.json.'
+        ],
+        codeSnippet: `# agent_bridge.py (ISA-18.2 Cooldown & Invocation)
+if not _is_suppressed(sensor_id):
+    prior_count = _dispatch_count.get(sensor_id, 0)
+    _dispatch_count[sensor_id] = prior_count + 1
+    
+    # Invoke watsonx Orchestrate agent
+    response = invoke_wxo_agent(alert_data, prior_dispatches=prior_count)
+    log_entry = _build_wxo_log_entry(alert_data, response)
+    
+    _append_log(log_entry)          # dashboard_log.json
+    _append_alert_history(alert_data, resolved=log_entry) # alert_history.json`,
+        keyInsight: 'Protects the AI Agent Layer from redundant repeated invocations during an ongoing heating or leak incident.'
+      },
+      {
+        id: 4,
+        shortName: 'Layer 4: AI Agent (wxO)',
+        fullName: 'Layer 4: AI Agent Layer',
+        subtitle: 'Contextual Reasoning & Dynamic Diagnostic Dispatch',
+        color: '#005d5d',
+        badge: 'watsonx Orchestrate (wxO)',
+        tech: 'watsonx Orchestrate Native Agent (zone_safety_native) + LLM (gpt-oss-120b via Groq / Granite 3.3)',
+        input: 'Qualified alert payload (Sensor ID, Zone, 5 measured signals, recurrence context)',
+        output: 'Structured department assignment (EHS, Mechanics, Electrical, Facilities), urgency rating, and actionable technician directives',
+        details: [
+          'Executes deterministic 5-step ReAct toolchain: check_zone_ambient_conditions, get_alert_history, get_prior_dispatches, get_zone_equipment_info, prepare_dispatch_payload.',
+          'Context Grounding: Pulls exact hardware identifiers from Zone Equipment Register (e.g. valve VALVE-CNC-COOL-01, extinguisher EXT-CNC-W, breaker AHU-HUM-BRK-02).',
+          'Trajectory & Recurrence: Inspects cross-session history to escalate repeat unresolved failures rather than repeating generic advice.',
+          'Emits DISPATCH_PAYLOAD::{...} JSON token payload for seamless bridge extraction.'
+        ],
+        codeSnippet: `# wxo_native_tools.py (5 Deterministic Diagnostic Tools)
+@tool(permission=ToolPermission.READ_ONLY)
+def get_zone_equipment_info(sensor_id: str) -> str:
+    """Returns zone equipment register: fire suppression, shutoff valves, emergency extensions."""
+    ...
+
+@tool(permission=ToolPermission.READ_ONLY)
+def get_prior_dispatches(sensor_id: str) -> str:
+    """Returns full text of prior dispatch recommendations for recurrence escalation."""
+    ...`,
+        keyInsight: 'The LLM does not guess or generalize. It grounds observations in physical facility facts, historical actions, and domain rules.'
+      },
+      {
+        id: 5,
+        shortName: 'Layer 5: Operations UI',
+        fullName: 'Layer 5: Operations Dashboard',
+        subtitle: 'Real-Time Command & Control Operations',
+        color: '#198038',
+        badge: 'Human-in-the-Loop (Carbon UI)',
+        tech: 'Carbon Design System v11 + React 18 + Express API server (:4173 / :3000)',
+        input: 'dashboard_log.json (dispatches) + sensor_log.json (raw telemetry) via 3-second polling',
+        output: 'Visual Command Center: KPI metrics, AI Dispatch Cards, Live Multi-signal Telemetry, Interactive Floor Plan',
+        details: [
+          'AI Dispatches View: Expandable cards revealing full LLM reasoning trace, physical failure diagnosis, calibrated sensor deviations, and next steps.',
+          'Sensor Telemetry View: Live SVG time-series graphs for all 5 signals with overlaid danger and warning threshold baselines.',
+          'Interactive Floor Plan: Dual-state zone status map deriving live warning states and AI-confirmed critical emergency dispatches.',
+          'Human Feedback Loop: Domain technicians review and act on dispatches, providing feedback to recalibrate thresholds and update equipment registers.'
+        ],
+        codeSnippet: `// Frontend Live Polling & Dispatch Rendering
+const res = await fetch('/log/dashboard_log.json');
+const entries = text.split('\\n').filter(Boolean).map(JSON.parse);
+// Dynamic Carbon UI updates with live urgency badges and department routing`,
+        keyInsight: 'Connects AI reasoning directly to the humans on the shop floor with full explainability and transparent physical telemetry.'
+      }
+    ];
+
+    const SCENARIOS = [
+      {
+        id: 'transient',
+        title: 'Scenario A: Chip Blow-off (Transient Particulate Spike)',
+        badge: 'Noise Absorbed by Flink (Zero LLM Invocations)',
+        badgeColor: 'tag-green',
+        steps: [
+          { layer: 'Layer 1: Producers', badgeClass: 'tag-blue', desc: 'CNC sensor emits a single 5s spike of PM2.5 (40 µg/m³) during compressed air blow-off.' },
+          { layer: 'Layer 2: Token Shield', badgeClass: 'tag-purple', desc: 'Flink 60s tumbling window averages the 5s spike with 11 clean readings (~18 µg/m³). Result: 19.8 µg/m³ (well below 35 µg/m³ threshold).' },
+          { layer: 'Layer 3: Agent Bridge', badgeClass: 'tag-teal', desc: 'No event emitted to sensor_alerts. Cooldown unaffected.' },
+          { layer: 'Layer 4: AI Agent', badgeClass: 'tag-teal', desc: '0 LLM calls made. 0 tokens consumed. Zero false alarm dispatch.' },
+          { layer: 'Layer 5: Operations UI', badgeClass: 'tag-green', desc: 'Telemetry chart displays the minor transient blip; no critical banner or false alarm created.' }
+        ]
+      },
+      {
+        id: 'fire',
+        title: 'Scenario B: Tool Binding Fire (Sustained Thermal + Smoke Event)',
+        badge: 'Multi-Signal Correlation & Critical EHS Dispatch',
+        badgeColor: 'tag-red',
+        steps: [
+          { layer: 'Layer 1: Producers', badgeClass: 'tag-blue', desc: 'CNC tool binds. Emits sustained high temp (41.2°C), high CO (29 ppm), and dense PM2.5 smoke (42 µg/m³).' },
+          { layer: 'Layer 2: Token Shield', badgeClass: 'tag-purple', desc: 'Flink detects sustained multi-signal threshold breach across 60s window. Emits alert event to sensor_alerts.' },
+          { layer: 'Layer 3: Agent Bridge', badgeClass: 'tag-teal', desc: 'Bridge checks cooldown timer, formats alert payload with prior recurrence counter, and invokes wxO agent.' },
+          { layer: 'Layer 4: AI Agent', badgeClass: 'tag-teal', desc: 'wxO Agent executes toolchain: identifies burning cutting oil, checks equipment register for SUPPRESS-CNC-01 & valve VALVE-CNC-COOL-01, assigns EHS department (ext. 911), and generates emergency dispatch.' },
+          { layer: 'Layer 5: Operations UI', badgeClass: 'tag-green', desc: 'Live Dashboard flashes red CRITICAL banner; routes work order to EHS team with exact extinguisher location and isolation steps.' }
+        ]
+      },
+      {
+        id: 'humidity',
+        title: 'Scenario C: HVAC Humidifier Failure (ESD Quality Risk)',
+        badge: 'Domain-Specific IPC-A-610 Standard Enforcement',
+        badgeColor: 'tag-purple',
+        steps: [
+          { layer: 'Layer 1: Producers', badgeClass: 'tag-blue', desc: 'Electronics Assembly zone humidity drops steadily from 52% to 28% while temperature remains normal.' },
+          { layer: 'Layer 2: Token Shield', badgeClass: 'tag-purple', desc: 'Flink evaluates Assembly zone threshold: Humidity < 30% breaches IPC-A-610 ESD safe floor. Emits alert.' },
+          { layer: 'Layer 3: Agent Bridge', badgeClass: 'tag-teal', desc: 'Bridge forwards qualified alert to watsonx Orchestrate.' },
+          { layer: 'Layer 4: AI Agent', badgeClass: 'tag-teal', desc: 'Agent queries equipment info: identifies breaker AHU-HUM-BRK-02 and BMS terminal BMS-AHU-02. Assigns Facilities department with instructions to pause sensitive IC assembly.' },
+          { layer: 'Layer 5: Operations UI', badgeClass: 'tag-green', desc: 'Facilities receives targeted dispatch; operator halts IC placement before electrostatic damage occurs.' }
+        ]
+      }
+    ];
+
+    let currentLayerId = 2;
+    let currentScenarioId = 'transient';
+
+    function renderPipelineNav() {
+      const container = document.getElementById('pipelineNavGrid');
+      container.innerHTML = ARCHITECTURE_DATA.map(layer => {
+        const isActive = layer.id === currentLayerId;
+        return `
+          <button class="layer-card-btn ${isActive ? 'active' : ''}" 
+                  style="${isActive ? 'border-color: ' + layer.color + ';' : ''}"
+                  onclick="selectLayer(${layer.id})">
+            <div>
+              <div class="layer-btn-header">
+                <span class="layer-number" style="background: ${layer.color}">L${layer.id}</span>
+                <span style="font-size: 0.75rem; color: var(--cds-text-helper);">Step 0${layer.id}</span>
+              </div>
+              <div class="layer-btn-title">${layer.shortName}</div>
+              <div class="layer-btn-tech">${layer.badge}</div>
+            </div>
+            <div class="layer-indicator" style="color: ${layer.color};">
+              ${isActive ? '● Active Inspection' : '○ Click to inspect'}
+            </div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function updateLayerInspector() {
+      const layer = ARCHITECTURE_DATA.find(l => l.id === currentLayerId);
+      const inspector = document.getElementById('layerInspector');
+
+      inspector.innerHTML = `
+        <div class="inspector-header">
+          <div>
+            <div class="inspector-layer-meta">
+              <span class="tag" style="background: ${layer.color}; color: #fff;">Layer ${layer.id}</span>
+              <span class="tag tag-blue">${layer.badge}</span>
+            </div>
+            <h2 class="inspector-title">${layer.fullName}</h2>
+            <div class="inspector-subtitle">${layer.subtitle}</div>
+          </div>
+          <div>
+            <span style="font-size: 0.85rem; color: var(--cds-text-helper);">Architecture Pipeline Step ${layer.id} of 5</span>
+          </div>
+        </div>
+
+        <div class="inspector-grid">
+          <div>
+            <div class="info-card">
+              <div class="info-card-title">Technical Specifications &amp; Interfaces</div>
+              <ul class="spec-list">
+                <li class="spec-item">
+                  <span class="spec-label">Tech Stack:</span>
+                  <span class="spec-value"><code>${layer.tech}</code></span>
+                </li>
+                <li class="spec-item">
+                  <span class="spec-label">Input Interface:</span>
+                  <span class="spec-value">${layer.input}</span>
+                </li>
+                <li class="spec-item">
+                  <span class="spec-label">Output Interface:</span>
+                  <span class="spec-value">${layer.output}</span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="info-card">
+              <div class="info-card-title">Core Responsibilities &amp; Stream Physics</div>
+              <ul class="bullet-list">
+                ${layer.details.map(d => `<li class="bullet-item">${d}</li>`).join('')}
+              </ul>
+            </div>
+
+            <div class="key-insight-box">
+              <div class="key-insight-title">Architectural Value &amp; Design Rationale</div>
+              <div class="key-insight-text">${layer.keyInsight}</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="info-card" style="height: 100%;">
+              <div class="info-card-title">Production Implementation Code</div>
+              <pre class="code-box"><code>${escapeHtml(layer.codeSnippet)}</code></pre>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderScenarios() {
+      const tabsContainer = document.getElementById('scenarioTabs');
+      tabsContainer.innerHTML = SCENARIOS.map(s => {
+        const isActive = s.id === currentScenarioId;
+        return `
+          <button class="scenario-tab-btn ${isActive ? 'active' : ''}" onclick="selectScenario('${s.id}')">
+            <span>${s.title.split(':')[0]}</span>
+            <span class="tag ${s.badgeColor}">${s.id === 'transient' ? 'Noise Filtered' : 'Escalated'}</span>
+          </button>
+        `;
+      }).join('');
+
+      const activeScenario = SCENARIOS.find(s => s.id === currentScenarioId);
+      const flowContainer = document.getElementById('scenarioFlow');
+      flowContainer.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--cds-border-subtle);">
+          <h3 style="font-size: 1.1rem; font-weight: 600; color: #fff;">${activeScenario.title}</h3>
+          <span class="tag ${activeScenario.badgeColor}">${activeScenario.badge}</span>
+        </div>
+        <div>
+          ${activeScenario.steps.map(step => `
+            <div class="scenario-step">
+              <span class="scenario-step-badge ${step.badgeClass}">${step.layer}</span>
+              <div class="scenario-step-desc">${step.desc}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function selectLayer(id) {
+      currentLayerId = id;
+      renderPipelineNav();
+      updateLayerInspector();
+    }
+
+    function selectScenario(id) {
+      currentScenarioId = id;
+      renderScenarios();
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    renderPipelineNav();
+    updateLayerInspector();
+    renderScenarios();
+  </script>
+</body>
+</html>

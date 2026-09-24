@@ -1,0 +1,15 @@
+{
+  "name": "local-streaming",
+  "version": "1.0.0",
+  "description": "A fully local, production-grade reference architecture for **event-driven AI agent pipelines** applied to industrial zone safety monitoring. Sensor data streams from simulated zone sensors through Apache Kafka, is enriched and classified by Apache Flink using multi-signal logic, and then triggers either:",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

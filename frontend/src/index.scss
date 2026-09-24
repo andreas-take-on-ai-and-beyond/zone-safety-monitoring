@@ -1,0 +1,562 @@
+// SCSS entry: sets g90 dark theme then loads all Carbon component styles.
+// @use '@carbon/react' MUST be LAST after the theme config to inherit it.
+
+// 1. Set default theme to g90 (dark)
+@use '@carbon/react/scss/themes' as themes;
+@use '@carbon/react/scss/theme' with (
+  $theme: themes.$g90
+);
+
+// 2. Load all component styles (includes reset and IBM Plex)
+@use '@carbon/react';
+
+// ─── Custom overrides ────────────────────────────────────────────────────────
+
+// Full-height shell layout — background-color on html/body/root ensures the
+// g90 dark background fills the entire viewport even when scrolled past content.
+html,
+body,
+#root {
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+  background-color: var(--cds-background);
+}
+
+// Push page content below the 48px Carbon header.
+// min-height 100vh ensures short pages never expose a white gap at the bottom.
+.page-content {
+  padding-top: 3rem; // 48px header height
+  min-height: 100vh;
+  background-color: var(--cds-background);
+}
+
+// ─── KPI tile accent border ──────────────────────────────────────────────────
+.kpi-tile {
+  border-top: 3px solid var(--cds-interactive);
+  position: relative;
+
+  &--critical {
+    border-top-color: var(--cds-support-error);
+  }
+
+  &--success {
+    border-top-color: var(--cds-support-success);
+  }
+
+  &--info {
+    border-top-color: var(--cds-support-info);
+  }
+
+  &--warning {
+    border-top-color: var(--cds-support-warning);
+  }
+}
+
+.kpi-tile__value {
+  font-size: 2.5rem;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--cds-text-primary);
+  margin: 0.5rem 0 0.25rem;
+}
+
+.kpi-tile__label {
+  font-size: 0.875rem;
+  color: var(--cds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+// ─── Critical alert banner ───────────────────────────────────────────────────
+.critical-banner {
+  border-left: 4px solid var(--cds-support-error);
+  background-color: var(--cds-layer-01);
+  padding: 1rem 1.25rem;
+  border-radius: 2px;
+  margin-bottom: 1rem;
+}
+
+.critical-banner__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.critical-banner__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cds-support-error);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.critical-banner__meta {
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+}
+
+.critical-banner__body {
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--cds-text-primary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+// ─── Reasoning & env blocks ──────────────────────────────────────────────────
+.reasoning-block {
+  background-color: var(--cds-layer-02);
+  border-left: 3px solid #6929c4;
+  padding: 0.75rem 1rem;
+  border-radius: 2px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8125rem;
+  white-space: pre-wrap;
+  color: var(--cds-text-primary);
+  margin-top: 0.5rem;
+  overflow-x: auto;
+}
+
+.env-block {
+  background-color: var(--cds-layer-02);
+  border-left: 3px solid var(--cds-support-success);
+  padding: 0.75rem 1rem;
+  border-radius: 2px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8125rem;
+  white-space: pre-wrap;
+  color: var(--cds-text-secondary);
+  margin-top: 0.5rem;
+  overflow-x: auto;
+}
+
+// ─── Section divider ─────────────────────────────────────────────────────────
+.section-divider {
+  border: none;
+  border-top: 1px solid var(--cds-border-subtle-01);
+  margin: 1.5rem 0;
+}
+
+// ─── Zone breakdown sub-grid ──────────────────────────────────────────────────
+.zone-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.zone-card {
+  background-color: var(--cds-layer-01);
+  padding: 1rem 1.25rem;
+  border-radius: 2px;
+  border: 1px solid var(--cds-border-subtle-01);
+}
+
+.zone-card__name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+}
+
+.zone-card__id {
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.zone-card__counts {
+  display: flex;
+  gap: 1rem;
+}
+
+.zone-card__count {
+  display: flex;
+  flex-direction: column;
+
+  span:first-child {
+    font-size: 1.25rem;
+    font-weight: 300;
+    line-height: 1;
+  }
+
+  span:last-child {
+    font-size: 0.75rem;
+    color: var(--cds-text-secondary);
+  }
+}
+
+// ─── Dispatch list item ───────────────────────────────────────────────────────
+.dispatch-section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cds-text-secondary);
+  margin: 0.75rem 0 0.25rem;
+}
+
+.dispatch-message {
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--cds-text-primary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 0.5rem;
+  border-radius: 2px;
+  background-color: var(--cds-layer-02);
+  margin-bottom: 0.5rem;
+}
+
+// ─── Accordion title tag alignment ───────────────────────────────────────────
+.dispatch-accordion-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+}
+
+// ─── Empty / waiting state ────────────────────────────────────────────────────
+.waiting-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: var(--cds-text-secondary);
+  text-align: center;
+  gap: 1rem;
+}
+
+// ─── Page section header ──────────────────────────────────────────────────────
+.section-header {
+  margin-bottom: 1rem;
+
+  h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--cds-text-primary);
+    margin: 0 0 0.25rem;
+  }
+
+  p {
+    font-size: 0.8125rem;
+    color: var(--cds-text-secondary);
+    margin: 0;
+  }
+}
+
+// ─── Dept stat columns inside accordion ──────────────────────────────────────
+.dept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.dept-card {
+  background-color: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 2px;
+  padding: 1rem;
+}
+
+.dept-card__name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.dept-card__counts {
+  display: flex;
+  gap: 1rem;
+}
+
+.dept-card__count {
+  display: flex;
+  flex-direction: column;
+
+  span:first-child {
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: var(--cds-text-primary);
+    line-height: 1;
+  }
+
+  span:last-child {
+    font-size: 0.75rem;
+    color: var(--cds-text-secondary);
+  }
+}
+
+// ─── Dispatch toast (Sensor Telemetry tab alert) ──────────────────────────────
+.dispatch-toast-wrapper {
+  margin-top: 1rem;
+
+  // Make the toast full-width inside the grid column
+  .cds--toast-notification {
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
+// ─── Dashboard tabs wrapper ───────────────────────────────────────────────────
+// Sits flush under the Carbon header; contained TabList fills full width.
+.dashboard-tabs-wrapper {
+  // Pull the TabList up to sit right under the Carbon header with no gap
+  .cds--tabs--contained {
+    background-color: var(--cds-layer-01);
+  }
+
+  // TabPanel has Carbon's default padding; we let the inner Grid handle spacing
+  .cds--tab-content {
+    padding: 0;
+  }
+}
+
+// ─── Sensor Telemetry charts ──────────────────────────────────────────────────
+
+// Single column — one chart per row, full width
+.telemetry-chart-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+// Individual chart tile — accent border driven by --chart-accent CSS var
+.sensor-chart-tile {
+  border-top: 3px solid var(--chart-accent, var(--cds-support-info));
+  padding: 0.875rem 1rem 0.75rem;
+}
+
+.sensor-chart__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.sensor-chart__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  min-width: 6rem;
+}
+
+.sensor-chart__legend {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.sensor-chart__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  color: var(--cds-text-secondary);
+}
+
+.sensor-chart__legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sensor-chart__legend-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+}
+
+.sensor-chart__legend-val {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+}
+
+.sensor-chart__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+// ─── Floor Plan tab ───────────────────────────────────────────────────────────
+
+.floor-plan-wrapper {
+  background-color: #0f0f0f;
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.floor-plan-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+// Sensor node pulse animation for critical/warning states
+@keyframes sensor-pulse {
+  0%   { r: 28; opacity: 0.3; }
+  50%  { r: 34; opacity: 0.12; }
+  100% { r: 28; opacity: 0.3; }
+}
+
+.sensor-pulse-ring {
+  animation: sensor-pulse 2s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+// Floor plan legend
+.floor-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.floor-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  color: var(--cds-text-secondary);
+}
+
+.floor-legend__dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+// Sensor detail panel
+.floor-detail-panel {
+  background-color: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  margin-top: 0.25rem;
+}
+
+.floor-detail-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.875rem;
+  flex-wrap: wrap;
+}
+
+.floor-detail-panel__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  font-family: 'IBM Plex Mono', monospace;
+  flex: 1;
+  min-width: 0;
+}
+
+.floor-detail-panel__metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.floor-metric {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0.625rem;
+  border-radius: 3px;
+  background-color: var(--cds-layer-02);
+  border-left: 3px solid var(--cds-border-subtle-01);
+
+  &--ok {
+    border-left-color: #42be65;
+  }
+
+  &--warning {
+    border-left-color: #f1c21b;
+  }
+
+  &--critical {
+    border-left-color: #fa4d56;
+  }
+}
+
+.floor-metric__label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cds-text-secondary);
+  margin-bottom: 0.2rem;
+}
+
+.floor-metric__value {
+  font-size: 0.9375rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+}
+
+.floor-detail-panel__no-data {
+  font-size: 0.8125rem;
+  color: var(--cds-text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.floor-detail-panel__dispatch {
+  border-top: 1px solid var(--cds-border-subtle-01);
+  padding-top: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.floor-detail-panel__dispatch-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cds-text-secondary);
+  margin-bottom: 0.375rem;
+}
+
+.floor-detail-panel__dispatch-msg {
+  font-size: 0.8125rem;
+  font-family: inherit;
+  color: var(--cds-text-primary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.dispatch-bold {
+  font-weight: 600;
+  color: var(--cds-text-primary);
+}

@@ -1,0 +1,50 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.ruff_cache/
+
+# ── Node / Frontend ───────────────────────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# ── Runtime log files (written at runtime — not part of source) ───────────────
+dashboard_log.json
+sensor_log.json
+alert_history.json
+
+# ── Kafka data (written by Docker volume mount) ───────────────────────────────
+kafka-data/
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+*.env
+credentials.yaml
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ── IDE / editor ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Bob AI assistant workspace ────────────────────────────────────────────────
+.bob/
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+*.log
+*.tmp
