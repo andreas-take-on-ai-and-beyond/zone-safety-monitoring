@@ -1,5 +1,17 @@
 # Zone Safety Command Center
 
+## Related Blog Posts
+
+This demo is the hands-on implementation described in two companion articles:
+
+- **[Building an Event-Driven Agentic AI Architecture: A Reference Blueprint Applied to Industrial IoT Zone Safety Monitoring](https://schneiderandreas.net/2026/07/30/building-an-event-driven-agentic-ai-architecture-a-reference-blueprint-applied-to-industrial-iot-zone-safety-monitoring/)**
+  A deep-dive into the architecture, design decisions, and implementation details of this exact pipeline — Kafka, Flink, the watsonx Orchestrate native agent, and the Carbon React dashboard.
+
+- **[The Synergy of Event Stream Processing & Agentic AI](https://schneiderandreas.net/2026/08/17/the-synergy-of-event-stream-processing-agentic-ai/)**
+  A more conceptual exploration of why event stream processing and agentic AI are a natural fit, using this zone safety use case as the reference example.
+
+---
+
 An event-driven AI agent pipeline for industrial zone safety monitoring — fully local infrastructure, cloud-grade LLM.
 
 Synthetic sensor data streams from two simulated manufacturing zone sensors through **Apache Kafka**, is classified by **Apache Flink** using multi-signal threshold logic, and dispatches a **native watsonx Orchestrate agent** (`zone_safety_native`) that interprets readings, checks cross-session incident history, retrieves zone equipment facts, and emits structured maintenance dispatches to a live **Carbon React dashboard**.
