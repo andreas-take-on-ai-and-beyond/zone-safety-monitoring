@@ -105,7 +105,13 @@ pip install -r requirements.txt
 
 ### 2 — Configure watsonx Orchestrate Developer Edition `.env`
 
-Create an environment file (e.g., at `~/.wxo-dev-edition/.env` or `/path/to/wxo-dev-edition/.env`) containing your credentials:
+Create an environment file at a path of your choice (e.g. `~/.wxo-dev-edition/.env`) and populate it with your credentials.
+A ready-to-fill template is provided at [`.env.wxo-dev-edition.example`](.env.wxo-dev-edition.example) in this repository.
+
+> **Security:** Generate a unique, strong password for every credential field.
+> Use `openssl rand -base64 32` for each password and for `DB_ENCRYPTION_KEY`.
+> **Never reuse default or well-known values for any of these fields.**
+> The `.env` file must never be committed — it is already covered by `.gitignore`.
 
 ```env
 # ── Developer Edition Image Source ──
@@ -113,25 +119,28 @@ WO_DEVELOPER_EDITION_SOURCE=myibm
 WO_ENTITLEMENT_KEY=<your_cp_icr_io_entitlement_key>
 
 # ── Cloud LLM & Service Proxy (watsonx Orchestrate SaaS Tenant) ──
-WO_INSTANCE=https://api.eu-central-1.dl.watson-orchestrate.ibm.com/instances/<your_tenant_instance_id>
+# EU:       https://api.eu-central-1.dl.watson-orchestrate.ibm.com/instances/<instance-id>
+# US South: https://api.us-south.watson-orchestrate.cloud.ibm.com/instances/<instance-id>
+WO_INSTANCE=<your-region-endpoint>/instances/<your-instance-id>
 WO_API_KEY=<your_watsonx_orchestrate_api_key>
 AUTHORIZATION_URL=https://account-iam.platform.saas.ibm.com/api/2.0/apikeys/token
 
 # ── Internal Service Credentials (minimum 18 characters for all passwords) ──
-MINIO_ROOT_USER=minioadmin
-LANGFUSE_USERNAME=orchestrate
-MCP_GATEWAY_BASIC_USER=admin
-CLICKHOUSE_USER=clickhouse
+# Generate each password with: openssl rand -base64 32
+MINIO_ROOT_USER=<choose-a-username>
+LANGFUSE_USERNAME=<choose-a-username>
+MCP_GATEWAY_BASIC_USER=<choose-a-username>
+CLICKHOUSE_USER=<choose-a-username>
 
-POSTGRES_PASSWORD=watsonxorchestrate_pg_pass
-MINIO_ROOT_PASSWORD=watsonxorchestrate_minio_pass
-LANGFUSE_PASSWORD=watsonxorchestrate_lf_pass
-MCP_GATEWAY_BASIC_PASSWORD=watsonxorchestrate_mcp_pass
-MCP_GATEWAY_ADMIN_PASSWORD=watsonxorchestrate_admin_pass
-CLICKHOUSE_PASSWORD=watsonxorchestrate_ch_pass
-ES_PASSWORD=watsonxorchestrate_es_pass
-MILVUS_PASSWORD=watsonxorchestrate_milvus_pass
-DB_ENCRYPTION_KEY=watsonxorchestrate_db_enc_key
+POSTGRES_PASSWORD=<generate: openssl rand -base64 32>
+MINIO_ROOT_PASSWORD=<generate: openssl rand -base64 32>
+LANGFUSE_PASSWORD=<generate: openssl rand -base64 32>
+MCP_GATEWAY_BASIC_PASSWORD=<generate: openssl rand -base64 32>
+MCP_GATEWAY_ADMIN_PASSWORD=<generate: openssl rand -base64 32>
+CLICKHOUSE_PASSWORD=<generate: openssl rand -base64 32>
+ES_PASSWORD=<generate: openssl rand -base64 32>
+MILVUS_PASSWORD=<generate: openssl rand -base64 32>
+DB_ENCRYPTION_KEY=<generate: openssl rand -base64 32>
 ```
 
 ### 3 — Install Node.js frontend dependencies
@@ -263,11 +272,12 @@ Five tools give the agent context that a static rule system cannot have:
 | Variable | Default | Description |
 |---|---|---|
 | `ALERT_COOLDOWN_SECONDS` | `180` | Per-sensor cooldown between LLM dispatches (seconds) |
+| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka broker address — used by both sensor producers and the agent bridge. Override to point at a remote or managed broker without editing source. |
 | `WXO_BASE_URL` | `http://localhost:4321/api/v1` | watsonx Orchestrate DE API base URL |
 | `WXO_AGENT_ID` | _(required)_ | UUID from `orchestrate agents list -v` |
-| `WXO_BEARER_TOKEN` | _(auto-read from `~/.cache/orchestrate/credentials.yaml`)_ | wxO bearer token |
+| `WXO_BEARER_TOKEN` | _(auto-read from `~/.cache/orchestrate/credentials.yaml`)_ | wxO bearer token — read fresh on every agent call so token rotation during a long-running session is handled transparently |
 | `WXO_TIMEOUT_SECONDS` | `120` | HTTP timeout for wxO API calls |
-| `WXO_DEBUG_DUMP` | `0` | Set to `1` to print the full prompt before each agent call |
+| `WXO_DEBUG_DUMP` | `0` | Set to `1` to log safe agent response metadata (run ID, model, usage, step count) before each dispatch |
 | `SCENARIO` | `NORMAL` | Sensor scenario — set via `scenario_runner.sh` or directly |
 | `PORT` | `4173` | Dashboard port |
 

@@ -10,6 +10,11 @@ from confluent_kafka import Consumer
 from wxo_client import extract_log_fields, invoke_wxo_agent
 
 ROOT_DIR             = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+# Kafka broker address — configurable via env so the bridge can be pointed at
+# a remote or managed broker without touching source code.
+KAFKA_BOOTSTRAP      = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+
 LOG_FILE             = os.path.join(ROOT_DIR, "dashboard_log.json")
 SENSOR_LOG_FILE      = os.path.join(ROOT_DIR, "sensor_log.json")
 ALERT_HISTORY_FILE   = os.path.join(ROOT_DIR, "alert_history.json")   # persistent cross-session dispatch history (never trimmed)
@@ -85,7 +90,7 @@ def _is_suppressed(sensor_id: str) -> bool:
 
 
 conf = {
-    'bootstrap.servers': 'localhost:9092',
+    'bootstrap.servers': KAFKA_BOOTSTRAP,
     'group.id': 'wxo-trigger-group',
     'auto.offset.reset': 'latest'
 }
@@ -206,7 +211,7 @@ def _build_wxo_log_entry(alert_data: dict, response: dict) -> dict:
 # Uses a separate consumer group so it never interferes with Flink offsets.
 def _telemetry_consumer_loop() -> None:
     raw_conf = {
-        'bootstrap.servers': 'localhost:9092',
+        'bootstrap.servers': KAFKA_BOOTSTRAP,
         'group.id': 'wxo-telemetry-reader',
         'auto.offset.reset': 'latest',
         # Never commit offsets for this stateless reader — on every restart

@@ -3,9 +3,12 @@ import os
 import re
 from urllib import error, request as urllib_request
 
-WXO_BASE_URL = os.getenv("WXO_BASE_URL", "http://localhost:4321/api/v1")
-WXO_AGENT_ID = os.getenv("WXO_AGENT_ID", "")
-WXO_BEARER_TOKEN = os.getenv("WXO_BEARER_TOKEN", "")
+# ---------------------------------------------------------------------------
+# Configuration — read from environment at call time (not at import time)
+# so that tokens rotated while the bridge is running are always picked up.
+# WXO_BASE_URL and WXO_TIMEOUT_SECONDS are stable and safe to read once.
+# ---------------------------------------------------------------------------
+WXO_BASE_URL        = os.getenv("WXO_BASE_URL", "http://localhost:4321/api/v1")
 WXO_TIMEOUT_SECONDS = float(os.getenv("WXO_TIMEOUT_SECONDS", "120"))
 
 _DISPATCH_TAG = "DISPATCH_PAYLOAD::"
@@ -74,21 +77,21 @@ def build_agent_prompt(alert_data: dict, prior_dispatches: int = 0) -> str:
 #   2. GET  /orchestrate/runs/{run_id}                — gets step_history with tool outputs
 # ---------------------------------------------------------------------------
 
-def _build_chat_url() -> str:
-    return f"{WXO_BASE_URL.rstrip('/')}/orchestrate/{WXO_AGENT_ID}/chat/completions"
+def _build_chat_url(agent_id: str) -> str:
+    return f"{WXO_BASE_URL.rstrip('/')}/orchestrate/{agent_id}/chat/completions"
 
 
 def _build_run_url(run_id: str) -> str:
     return f"{WXO_BASE_URL.rstrip('/')}/orchestrate/runs/{run_id}"
 
 
-def _fetch_run(run_id: str, retries: int = 5, delay: float = 1.0) -> dict:
+def _fetch_run(run_id: str, token: str, retries: int = 5, delay: float = 1.0) -> dict:
     """GET /orchestrate/runs/{run_id} and poll until step_history is non-empty."""
     import time
     for attempt in range(retries):
         req = urllib_request.Request(
             _build_run_url(run_id),
-            headers={"Authorization": f"Bearer {WXO_BEARER_TOKEN}"},
+            headers={"Authorization": f"Bearer {token}"},
             method="GET",
         )
         try:
@@ -117,10 +120,19 @@ def invoke_wxo_agent(alert_data: dict, thread_id: str | None = None, prior_dispa
     Step 1: POST chat/completions → final_text + run_id (fast, reliable)
     Step 2: GET  /runs/{run_id}   → step_history with DISPATCH_PAYLOAD:: and env_report
     Returns a merged dict with both.
+
+    WXO_AGENT_ID and WXO_BEARER_TOKEN are read fresh from the environment on every
+    call so that a token rotated while the bridge is running is always picked up
+    without restarting the process.
     """
-    if not WXO_AGENT_ID:
+    # Read credentials fresh on every invocation — not from module-level globals —
+    # so a rotated bearer token is always honoured without a bridge restart.
+    agent_id = os.getenv("WXO_AGENT_ID", "")
+    token    = os.getenv("WXO_BEARER_TOKEN", "")
+
+    if not agent_id:
         raise WXOConfigurationError("WXO_AGENT_ID is not set")
-    if not WXO_BEARER_TOKEN:
+    if not token:
         raise WXOConfigurationError("WXO_BEARER_TOKEN is not set")
 
     body: dict = {
@@ -131,10 +143,10 @@ def invoke_wxo_agent(alert_data: dict, thread_id: str | None = None, prior_dispa
         body["thread_id"] = thread_id
 
     req = urllib_request.Request(
-        _build_chat_url(),
+        _build_chat_url(agent_id),
         data=json.dumps(body).encode("utf-8"),
         headers={
-            "Authorization": f"Bearer {WXO_BEARER_TOKEN}",
+            "Authorization": f"Bearer {token}",
             "Content-Type":  "application/json",
             "Accept":        "application/json",
         },
@@ -150,9 +162,9 @@ def invoke_wxo_agent(alert_data: dict, thread_id: str | None = None, prior_dispa
     except error.URLError as exc:
         raise WXOInvocationError(f"WXO request failed: {exc.reason}") from exc
 
-    # Step 2: fetch run detail for step_history
-    run_id = chat_resp.get("run_id", "")
-    run_detail = _fetch_run(run_id) if run_id else {}
+    # Step 2: fetch run detail for step_history (pass token for the same reason)
+    run_id     = chat_resp.get("run_id", "")
+    run_detail = _fetch_run(run_id, token) if run_id else {}
 
     # Merge: add step_history into the chat response for extract_log_fields
     chat_resp["_step_history"] = (
@@ -163,10 +175,17 @@ def invoke_wxo_agent(alert_data: dict, thread_id: str | None = None, prior_dispa
 
     if os.getenv("WXO_DEBUG_DUMP") == "1":
         import sys
-        print("── CHAT RESPONSE ─────────────────────────────────────")
-        print(json.dumps(chat_resp, indent=2)[:2000])
-        print("── RUN DETAIL (step_history) ─────────────────────────")
-        print(json.dumps(chat_resp["_step_history"], indent=2)[:2000])
+        # Print only safe, non-sensitive fields — never dump the raw response
+        # which may contain auth metadata, session IDs, or internal service data.
+        safe = {
+            "run_id":        chat_resp.get("run_id"),
+            "model":         chat_resp.get("model"),
+            "usage":         chat_resp.get("usage"),
+            "choices_count": len(chat_resp.get("choices", [])),
+            "step_count":    len(chat_resp.get("_step_history", [])),
+        }
+        print("── AGENT RESPONSE (safe fields only) ────────────────")
+        print(json.dumps(safe, indent=2))
         print("──────────────────────────────────────────────────────")
         sys.stdout.flush()
 

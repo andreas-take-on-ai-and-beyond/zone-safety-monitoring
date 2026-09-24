@@ -48,3 +48,5 @@ credentials.yaml
 # ── Misc ──────────────────────────────────────────────────────────────────────
 *.log
 *.tmp
+# Keep the committed example template (contains only placeholders, no real secrets)
+!.env.wxo-dev-edition.example

@@ -24,6 +24,8 @@ BASE_CO2   = 700     # elevated during working hours from operator occupancy
 BASE_CO    = 2.0     # trace from soldering irons running; well below any threshold
 BASE_PM25  = 5.0     # near-cleanroom air quality with benchtop fume extractors on
 TOPIC      = "env_sensor_data"
+# Kafka broker — override with KAFKA_BOOTSTRAP_SERVERS env var for remote brokers.
+KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 
 # ── Scenario selection ────────────────────────────────────────────────────────
 # Set the SCENARIO environment variable before launching this script.
@@ -42,7 +44,7 @@ if SCENARIO not in VALID_SCENARIOS:
     print(f"⚠️  Unknown SCENARIO='{SCENARIO}'. Falling back to NORMAL.")
     SCENARIO = "NORMAL"
 
-producer = Producer({'bootstrap.servers': 'localhost:9092'})
+producer = Producer({'bootstrap.servers': KAFKA_BOOTSTRAP})
 
 print(f"🚀 [{SENSOR_ID}] Sensor simulation started — Electronics Assembly Zone")
 print(f"🎬 [{SENSOR_ID}] Active scenario: {SCENARIO}")

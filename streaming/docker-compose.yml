@@ -15,6 +15,9 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
       KAFKA_PROCESS_ROLES: 'broker,controller'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # Fixed KRaft cluster ID — intentional for reproducible local demo setup.
+      # Not a credential; this value carries no authentication weight.
+      # To regenerate: docker run --rm confluentinc/cp-kafka:7.6.0 kafka-storage random-uuid
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
 
   kafka-ui:

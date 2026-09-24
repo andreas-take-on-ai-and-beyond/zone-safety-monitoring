@@ -806,6 +806,12 @@ Zone mapping: one line in this zone. ENV_SENSOR_ZONE_ASSEMBLY readings reflect t
 | Nitrogen supply connection | N2-INLET-REFLOW | Rear of oven | Facilities | Blanket N₂ for low-oxygen reflow; valve closed when not in use |""",
 }
 
+# ---------------------------------------------------------------------------
+# Synthetic emergency contacts — all data below is fictional.
+# Phone numbers use the NANP 555-01xx range reserved for fiction/testing.
+# Extension numbers are placeholders for the demo facility register.
+# No real personnel, organisation, or contact data is represented here.
+# ---------------------------------------------------------------------------
 _FACILITY_CONTACTS = """\
 ## Emergency Contacts (Facility-Wide)
 | Role | Contact |

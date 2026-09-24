@@ -19,8 +19,11 @@ if [ -z "${WXO_AGENT_ID:-}" ]; then
 fi
 export WXO_AGENT_ID
 
-# Auto-refresh token from credentials.yaml if WXO_BEARER_TOKEN is not already set
+# Auto-refresh token from credentials.yaml if WXO_BEARER_TOKEN is not already set.
+# set +x / set -x guards prevent shell trace mode (bash -x / set -x) from
+# printing the token value to stdout if the caller has tracing enabled.
 if [ -z "${WXO_BEARER_TOKEN:-}" ]; then
+  { set +x; } 2>/dev/null
   WXO_BEARER_TOKEN="$(python3 - <<'PY'
 import yaml, sys
 from pathlib import Path
@@ -33,6 +36,7 @@ except Exception as e:
 PY
 )"
   export WXO_BEARER_TOKEN
+  { set -x; } 2>/dev/null
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
