@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zone Safety — Technical Architecture</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0d1117;
+  color: #c9d1d9;
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 2rem 2.5rem 3rem;
+}
+
+.mono {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace;
+  font-size: 10.5px;
+}
+
+/* ── Page header ── */
+.page-title {
+  font-size: 1.4rem; font-weight: 700; color: #f0f6fc;
+  letter-spacing: -0.3px; margin-bottom: 0.2rem;
+}
+.page-sub { font-size: 0.78rem; color: #6e7681; margin-bottom: 2rem; }
+
+/* ── Legend ── */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 1.5rem;
+  background: #161b27; border: 1px solid #21293a;
+  border-radius: 5px; padding: 0.7rem 1rem; margin-bottom: 2.5rem;
+}
+.leg-group { display: flex; flex-direction: column; gap: 0.3rem; }
+.leg-title { font-size: 0.62rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #3d4f6e; }
+.leg-items { display: flex; flex-wrap: wrap; gap: 0.65rem; }
+.leg-item  { display: flex; align-items: center; gap: 0.35rem; font-size: 0.7rem; color: #8b9ab5; }
+.leg-dot   { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.leg-line  { width: 20px; height: 2px; flex-shrink: 0; }
+.leg-dash  { width: 20px; height: 0; border-top: 2px dashed; flex-shrink: 0; }
+
+/* ── Layer row ── */
+.layer {
+  border-radius: 6px; border: 1px solid;
+  overflow: hidden; margin-bottom: 0;
+}
+
+.layer-head {
+  display: flex; align-items: baseline; gap: 0.75rem;
+  padding: 0.6rem 1rem 0.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.layer-num {
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; opacity: 0.6; white-space: nowrap;
+}
+.layer-name {
+  font-size: 0.95rem; font-weight: 700; white-space: nowrap;
+}
+.layer-tagline {
+  font-size: 0.72rem; opacity: 0.55; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.layer-macro {
+  margin-left: auto; font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.8px; text-transform: uppercase;
+  opacity: 0.45; white-space: nowrap;
+}
+
+/* layer-body now uses CSS grid so we can insert arrow-columns between cards */
+.layer-body {
+  display: flex; gap: 0; align-items: stretch;
+}
+
+/* ── Card inside layer ── */
+.card {
+  flex: 1; padding: 0.65rem 0.8rem;
+  border-right: 1px solid rgba(255,255,255,0.05);
+}
+.card:last-child { border-right: none; }
+.card-title {
+  font-size: 0.75rem; font-weight: 700;
+  margin-bottom: 0.4rem; white-space: nowrap;
+}
+.card-sub {
+  font-size: 0.65rem; margin-bottom: 0.45rem;
+  opacity: 0.55; white-space: nowrap;
+}
+.card p {
+  font-size: 0.68rem; color: #8b9ab5;
+  line-height: 1.65; margin-bottom: 0.1rem;
+}
+.card p:last-child { margin-bottom: 0; }
+.hl { color: #e6a24b; }
+.kw { color: #7db4f0; }
+.ok { color: #34d399; }
+
+.sub-box {
+  border-radius: 3px; border: 1px solid rgba(255,255,255,0.07);
+  padding: 0.35rem 0.5rem; margin: 0.4rem 0 0.1rem;
+  background: rgba(0,0,0,0.2);
+}
+.sub-box:last-child { margin-bottom: 0; }
+.sub-title {
+  font-size: 0.59rem; font-weight: 700; letter-spacing: 0.7px;
+  text-transform: uppercase; margin-bottom: 0.2rem;
+}
+
+/* ── Layer colour skins ── */
+.l1 { border-color: #3a2a08; background: #100d04; }
+.l1 .layer-head { background: rgba(227,98,9,0.12); color: #e36209; }
+.l1 .layer-name { color: #f59e0b; }
+.l1 .card-title { color: #e36209; }
+
+.l2 { border-color: #3a1414; background: #0e0808; }
+.l2 .layer-head { background: rgba(200,16,46,0.12); color: #c8102e; }
+.l2 .layer-name { color: #f07080; }
+.l2 .card-title { color: #f07080; }
+
+.l3 { border-color: #2d2060; background: #0b0820; }
+.l3 .layer-head { background: rgba(139,92,246,0.14); color: #8b5cf6; }
+.l3 .layer-name { color: #c4a0ff; }
+.l3 .card-title { color: #c4a0ff; }
+
+.l4 { border-color: #0a2458; background: #06091e; }
+.l4 .layer-head { background: rgba(15,98,254,0.14); color: #0f62fe; }
+.l4 .layer-name { color: #6da0ff; }
+.l4 .card-title { color: #6da0ff; }
+
+.l5 { border-color: #0a2840; background: #050c18; }
+.l5 .layer-head { background: rgba(56,189,248,0.12); color: #38bdf8; }
+.l5 .layer-name { color: #38bdf8; }
+.l5 .card-title { color: #38bdf8; }
+
+/* colour utility classes (line/arrowhead/border) */
+.c-k  { background:#e36209; border-color:#e36209; color:#e36209; }
+.c-f  { background:#c8102e; border-color:#c8102e; color:#c8102e; }
+.c-b  { background:#8b5cf6; border-color:#8b5cf6; color:#8b5cf6; }
+.c-br { background:#6d4cc8; border-color:#6d4cc8; color:#6d4cc8; }
+.c-w  { background:#0f62fe; border-color:#0f62fe; color:#0f62fe; }
+.c-l  { background:#059669; border-color:#059669; color:#059669; }
+.c-h  { background:#38bdf8; border-color:#38bdf8; color:#38bdf8; }
+.c-fi { background:#475569; border-color:#475569; color:#475569; }
+.c-pu { background:#c4a0ff; border-color:#c4a0ff; color:#c4a0ff; }
+
+/* ═══════════════════════════════════════
+   INTER-LAYER VERTICAL FLOW CONNECTOR
+   ═══════════════════════════════════════ */
+.v-flow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: 38px;
+  padding: 0 1.5rem;
+  gap: 0;
+}
+.v-flow-side {
+  height: 1px;
+  opacity: 0.18;
+}
+.v-flow-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 280px;
+  max-width: 580px;
+  gap: 0;
+}
+.v-flow-line-top    { width: 2px; height: 4px; flex-shrink: 0; }
+.v-flow-line-bottom { width: 2px; height: 3px; flex-shrink: 0; }
+.v-flow-pill {
+  padding: 1px 8px;
+  border-radius: 2px;
+  border: 1px solid;
+  font-size: 0.59rem; font-weight: 700;
+  white-space: nowrap; letter-spacing: 0.2px;
+  margin: 1px 0 1px;
+  /* force legible text regardless of background colour */
+  color: #f0f6fc !important;
+  /* dim the solid bg so text has enough contrast */
+  opacity: 0.88;
+}
+.v-flow-sub {
+  font-size: 0.54rem; color: #5a6a82;
+  white-space: nowrap; margin-bottom: 1px;
+  letter-spacing: 0.1px;
+}
+.v-flow-head {
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════
+   INTRA-LAYER HORIZONTAL MINI ARROW
+   ═══════════════════════════════════════ */
+.h-conn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 42px;
+  gap: 2px;
+  padding: 0 2px;
+  border-right: 1px solid rgba(255,255,255,0.04);
+  border-left: 1px solid rgba(255,255,255,0.04);
+  background: rgba(0,0,0,0.12);
+}
+.h-conn-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.h-conn-line { flex: 1; height: 1px; opacity: 0.7; }
+.h-conn-head {
+  width: 0; height: 0;
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  flex-shrink: 0;
+}
+.h-conn-label {
+  font-size: 0.5rem;
+  font-family: "SF Mono", "Fira Code", Consolas, monospace;
+  color: #5a6a82;
+  text-align: center;
+  line-height: 1.25;
+  padding: 0 1px;
+  white-space: nowrap;
+  max-width: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Note / annotation box ── */
+.note {
+  border: 1px solid #1e2a3a; border-radius: 4px;
+  background: #0c1018; padding: 0.55rem 0.7rem;
+}
+.note-title {
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase; margin-bottom: 0.35rem;
+}
+.note p { font-size: 0.67rem; color: #8b9ab5; line-height: 1.65; margin-bottom: 0.1rem; }
+.note p:last-child { margin-bottom: 0; }
+
+/* ── Reading guide ── */
+.guide {
+  margin-top: 2rem; padding: 0.7rem 1rem;
+  background: #161b27; border: 1px solid #21293a; border-radius: 5px;
+  font-size: 0.7rem; color: #6e7681; line-height: 1.8;
+}
+.guide strong { color: #c9d1d9; }
+.guide code { color: #7db4f0; font-family: "SF Mono", Consolas, monospace; }
+</style>
+</head>
+<body>
+
+<p class="page-title">Zone Safety Command Center — Technical Architecture</p>
+<p class="page-sub">5-layer blueprint · components · data flows · protocols · file paths · ports</p>
+
+<!-- ── Legend ── -->
+<div class="legend">
+  <div class="leg-group">
+    <div class="leg-title">Components</div>
+    <div class="leg-items">
+      <div class="leg-item"><div class="leg-dot" style="background:#e36209"></div>Kafka (confluent)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#c8102e"></div>Apache Flink SQL</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#3b7dd8"></div>Python producer</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#8b5cf6"></div>Bridge (Python consumer)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#0f62fe"></div>wxO native agent</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#059669"></div>LLM via AI Gateway</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#f59e0b"></div>Express server</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#38bdf8"></div>Carbon React SPA</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#475569"></div>JSON file (disk)</div>
+    </div>
+  </div>
+  <div class="leg-group">
+    <div class="leg-title">Data flow types</div>
+    <div class="leg-items">
+      <div class="leg-item"><div class="leg-line" style="background:#e36209"></div>Kafka wire (produce)</div>
+      <div class="leg-item"><div class="leg-line" style="background:#c8102e"></div>Kafka wire (consume / Flink source)</div>
+      <div class="leg-item"><div class="leg-line" style="background:#8b5cf6"></div>REST request (wxO API)</div>
+      <div class="leg-item"><div class="leg-line" style="background:#6d4cc8"></div>REST response / run result</div>
+      <div class="leg-item"><div class="leg-dash" style="border-color:#475569"></div>File I/O (read / append)</div>
+      <div class="leg-item"><div class="leg-line" style="background:#38bdf8"></div>HTTP poll (browser every 3 s)</div>
+      <div class="leg-item"><div class="leg-line" style="background:#059669"></div>AI Gateway (LLM inference)</div>
+      <div class="leg-item"><div class="leg-dash" style="border-color:#c4a0ff"></div>Cooldown suppression gate (180 s)</div>
+    </div>
+  </div>
+  <div class="leg-group">
+    <div class="leg-title">Blueprint macro-layers</div>
+    <div class="leg-items">
+      <div class="leg-item"><div class="leg-dot" style="background:#3a2a0a;border:1px solid #c87020"></div>Streaming Layer (L1 + L2)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#0a1540;border:1px solid #3060c0"></div>Agentic AI Layer (L3 + L4)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#061520;border:1px solid #1a5080"></div>Human / Oversight Layer (L5)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     LAYER 1 — INGESTION
+════════════════════════════════════════════════════════════ -->
+<div class="layer l1">
+  <div class="layer-head">
+    <span class="layer-num">Layer 1</span>
+    <span class="layer-name">Ingestion</span>
+    <span class="layer-tagline">Synthetic sensor producers → Kafka topics · real-time event streams at 5 s tick</span>
+    <span class="layer-macro">Streaming Layer</span>
+  </div>
+  <div class="layer-body">
+
+    <!-- card: CNC producer -->
+    <div class="card">
+      <div class="card-title">sensor_cnc.py</div>
+      <div class="card-sub">Python · confluent-kafka Producer</div>
+      <p class="mono"><span class="hl">SENSOR_ID:</span> ENV_SENSOR_ZONE_CNC</p>
+      <p class="mono"><span class="hl">key:</span> sensor_cnc</p>
+      <p class="mono"><span class="hl">tick:</span> every 5 s</p>
+      <p class="mono"><span class="hl">bootstrap:</span> localhost:9092</p>
+      <p class="mono"><span class="hl">SCENARIO:</span> NORMAL | TOOL_BINDING_FIRE</p>
+      <p class="mono">&nbsp;&nbsp;| COOLANT_LEAK | BEARING_OVERHEAT</p>
+      <p class="mono">&nbsp;&nbsp;| CHIP_BLOWOFF &nbsp;(5 scenarios)</p>
+    </div>
+
+    <!-- intra-layer arrow: producers → Kafka -->
+    <div class="h-conn">
+      <div class="h-conn-row">
+        <div class="h-conn-line" style="background:#e36209"></div>
+        <div class="h-conn-head" style="border-left-color:#e36209"></div>
+      </div>
+      <div class="h-conn-label">produce<br>JSON</div>
+    </div>
+
+    <!-- card: Assembly producer -->
+    <div class="card">
+      <div class="card-title">sensor_assembly.py</div>
+      <div class="card-sub">Python · confluent-kafka Producer</div>
+      <p class="mono"><span class="hl">SENSOR_ID:</span> ENV_SENSOR_ZONE_ASSEMBLY</p>
+      <p class="mono"><span class="hl">key:</span> sensor_assembly</p>
+      <p class="mono"><span class="hl">tick:</span> every 5 s</p>
+      <p class="mono"><span class="hl">bootstrap:</span> localhost:9092</p>
+      <p class="mono"><span class="hl">SCENARIO:</span> NORMAL | FUME_EXTRACTOR_FAILURE</p>
+      <p class="mono">&nbsp;&nbsp;| HVAC_HUMIDIFIER_FAILURE | HVAC_BREAKDOWN</p>
+      <p class="mono">&nbsp;&nbsp;(4 scenarios)</p>
+    </div>
+
+    <!-- intra-layer arrow: both producers → Kafka broker -->
+    <div class="h-conn">
+      <div class="h-conn-row">
+        <div class="h-conn-line" style="background:#e36209"></div>
+        <div class="h-conn-head" style="border-left-color:#e36209"></div>
+      </div>
+      <div class="h-conn-label">9092<br>KRaft</div>
+    </div>
+
+    <!-- card: Kafka broker -->
+    <div class="card">
+      <div class="card-title">Apache Kafka 7.6</div>
+      <div class="card-sub">Docker · KRaft (no ZooKeeper)</div>
+      <p class="mono"><span class="hl">INTERNAL:</span> kafka:29092</p>
+      <p class="mono"><span class="hl">EXTERNAL:</span> localhost:9092</p>
+      <p class="mono"><span class="hl">UI:</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localhost:8090</p>
+      <p class="mono"><span class="hl">image:</span> &nbsp;&nbsp;confluentinc/cp-kafka:7.6.0</p>
+      <p class="mono"><span class="hl">volume:</span> &nbsp;../kafka-data/</p>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#e36209">topic: env_sensor_data</div>
+        <p class="mono">partitions:1 · both producers write here</p>
+        <p class="mono">consumers: Flink source, bridge telemetry</p>
+      </div>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#f07080">topic: sensor_alerts</div>
+        <p class="mono">partitions:1 · written by Flink only</p>
+        <p class="mono">consumer: bridge main group</p>
+      </div>
+    </div>
+
+    <!-- card: payload schema -->
+    <div class="card" style="flex:0.7">
+      <div class="card-title">JSON payload (per tick)</div>
+      <div class="card-sub">Kafka message value</div>
+      <p class="mono">{ timestamp, sensor_id, zone,</p>
+      <p class="mono">&nbsp;&nbsp;temperature_c, pressure_hpa,</p>
+      <p class="mono">&nbsp;&nbsp;humidity_pct, co2_ppm,</p>
+      <p class="mono">&nbsp;&nbsp;co_ppm, pm25_ugm3,</p>
+      <p class="mono">&nbsp;&nbsp;current_value }</p>
+      <p style="margin-top:8px">SCENARIO label <strong style="color:#f07080">never</strong> leaves producers — stripped before agent sees data</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     VERTICAL FLOW CONNECTOR  L1 → L2
+     env_sensor_data  ·  Kafka connector  ·  latest-offset
+     ═══════════════════════════════════════ -->
+<div class="v-flow">
+  <div class="v-flow-side" style="background:linear-gradient(90deg,transparent,#e36209)"></div>
+  <div class="v-flow-track">
+    <div class="v-flow-line-top" style="background:#c8102e"></div>
+    <div class="v-flow-pill c-f">topic: env_sensor_data → Flink source table</div>
+    <div class="v-flow-sub">Kafka connector · kafka:29092 · format: json · startup: latest-offset · watermark: event_time − 10 s</div>
+    <div class="v-flow-line-bottom" style="background:#c8102e"></div>
+    <div class="v-flow-head" style="border-top-color:#c8102e"></div>
+  </div>
+  <div class="v-flow-side" style="background:linear-gradient(90deg,#c8102e,transparent)"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     LAYER 2 — TOKEN SHIELD
+════════════════════════════════════════════════════════════ -->
+<div class="layer l2">
+  <div class="layer-head">
+    <span class="layer-num">Layer 2</span>
+    <span class="layer-name">Token Shield</span>
+    <span class="layer-tagline">Stateful windowing · rule-based filtering suppresses noise before AI · init_job.sql</span>
+    <span class="layer-macro">Streaming Layer</span>
+  </div>
+  <div class="layer-body">
+
+    <!-- card: Flink runtime -->
+    <div class="card">
+      <div class="card-title">Apache Flink 1.18.1</div>
+      <div class="card-sub">Docker · Flink SQL continuous job</div>
+      <p class="mono"><span class="hl">job:</span> &nbsp;&nbsp;init_job.sql (Flink SQL)</p>
+      <p class="mono"><span class="hl">UI:</span> &nbsp;&nbsp;localhost:8081</p>
+      <p class="mono"><span class="hl">image:</span> flink:1.18.1-java11</p>
+      <p class="mono"><span class="hl">jar:</span> &nbsp;&nbsp;flink-sql-connector-kafka-3.0.2</p>
+    </div>
+
+    <!-- intra-layer: Flink runtime → source table -->
+    <div class="h-conn">
+      <div class="h-conn-row">
+        <div class="h-conn-line" style="background:#c8102e"></div>
+        <div class="h-conn-head" style="border-left-color:#c8102e"></div>
+      </div>
+      <div class="h-conn-label">SQL<br>source</div>
+    </div>
+
+    <!-- card: source table -->
+    <div class="card">
+      <div class="card-title">Source table</div>
+      <div class="card-sub">source_sensor_data</div>
+      <p class="mono"><span class="hl">connector:</span> kafka (kafka:29092)</p>
+      <p class="mono"><span class="hl">topic:</span> &nbsp;&nbsp;&nbsp;env_sensor_data</p>
+      <p class="mono"><span class="hl">startup:</span> &nbsp;latest-offset</p>
+      <p class="mono"><span class="hl">watermark:</span> event_time − 10 s</p>
+      <p class="mono"><span class="hl">format:</span> &nbsp;&nbsp;json</p>
+    </div>
+
+    <!-- intra-layer: source → window -->
+    <div class="h-conn">
+      <div class="h-conn-row">
+        <div class="h-conn-line" style="background:#c8102e"></div>
+        <div class="h-conn-head" style="border-left-color:#c8102e"></div>
+      </div>
+      <div class="h-conn-label">AVG<br>60 s</div>
+    </div>
+
+    <!-- card: tumbling window -->
+    <div class="card">
+      <div class="card-title">Tumbling window · 60 s</div>
+      <div class="card-sub">AVG aggregation before threshold eval</div>
+      <p class="mono">AVG(temp, hum, co2, co, pm25)</p>
+      <p class="mono">over 12 readings per window</p>
+      <p style="margin-top:6px;font-weight:600;color:#f07080">HAVING (alert condition):</p>
+      <p class="mono">CNC: &nbsp;&nbsp;temp &gt; 38 °C</p>
+      <p class="mono">ASSY: &nbsp;temp &gt; 26 °C</p>
+      <p class="mono">ANY: &nbsp;&nbsp;co &gt; 15 ppm</p>
+      <p class="mono">ANY: &nbsp;&nbsp;pm25 &gt; 35 µg/m³</p>
+      <p class="mono">ASSY: &nbsp;hum &lt; 30 %</p>
+    </div>
+
+    <!-- intra-layer: window → suppression -->
+    <div class="h-conn">
+      <div class="h-conn-row">
+        <div class="h-conn-line" style="background:#c8102e"></div>
+        <div class="h-conn-head" style="border-left-color:#c8102e"></div>
+      </div>
+      <div class="h-conn-label">filter<br>HAVING</div>
+    </div>
+
+    <!-- card: suppression note -->
+    <div class="card">
+      <div class="card-title">Two-layer suppression</div>
+      <div class="card-sub">Alert fatigue prevention</div>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#f07080">Layer 1 — Flink window (here)</div>
+        <p class="mono">1-tick spike absorbed by AVG</p>
+        <p class="mono">sustained condition passes HAVING</p>
+        <p class="mono">≤ 1 alert / sensor / 60 s</p>
+        <p style="color:#4a5a6e;margin-top:3px">≡ DCS alarm deadband</p>
+      </div>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#c4a0ff">Layer 2 — Bridge cooldown (L3)</div>
+        <p class="mono">_is_suppressed(sensor_id)</p>
+        <p class="mono">ALERT_COOLDOWN_SECONDS = 180</p>
+        <p class="mono">≤ 1 LLM call / sensor / 3 min</p>
+        <p style="color:#4a5a6e;margin-top:3px">≡ ISA-18.2 re-alarm timer</p>
+      </div>
+    </div>
+
+    <!-- intra-layer: suppression → sink -->
+    <div class="h-conn">
+      <div class="h-conn-row">
+        <div class="h-conn-line" style="background:#c8102e"></div>
+        <div class="h-conn-head" style="border-left-color:#c8102e"></div>
+      </div>
+      <div class="h-conn-label">sink<br>JSON</div>
+    </div>
+
+    <!-- card: sink -->
+    <div class="card" style="flex:0.65">
+      <div class="card-title">Sink → sensor_alerts</div>
+      <div class="card-sub">Qualified events only</div>
+      <p class="mono"><span class="hl">topic:</span> sensor_alerts</p>
+      <p class="mono"><span class="hl">format:</span> json</p>
+      <p style="margin-top:6px">Output: windowed AVG values for all 5 signals — no raw scenario labels pass through</p>
+      <p style="margin-top:6px"><span class="ok">✓</span> CHIP_BLOWOFF (1-tick PM2.5 spike) → <strong style="color:#f07080">suppressed</strong> by AVG</p>
+      <p><span class="ok">✓</span> TOOL_BINDING_FIRE (60 s sustained) → <strong style="color:#f59e0b">fires alert</strong></p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     VERTICAL FLOW CONNECTOR  L2 → L3
+     sensor_alerts  ·  Kafka consumer  ·  group: wxo-trigger-group
+     ═══════════════════════════════════════ -->
+<div class="v-flow">
+  <div class="v-flow-side" style="background:linear-gradient(90deg,transparent,#8b5cf6)"></div>
+  <div class="v-flow-track">
+    <div class="v-flow-line-top" style="background:#8b5cf6"></div>
+    <div class="v-flow-pill c-b">topic: sensor_alerts → Kafka consumer</div>
+    <div class="v-flow-sub">group.id: wxo-trigger-group · auto.offset.reset: latest · format: json · ≤ 1 dispatch / sensor / 180 s (cooldown gate)</div>
+    <div class="v-flow-line-bottom" style="background:#8b5cf6"></div>
+    <div class="v-flow-head" style="border-top-color:#8b5cf6"></div>
+  </div>
+  <div class="v-flow-side" style="background:linear-gradient(90deg,#8b5cf6,transparent)"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     LAYER 3 — DISPATCH BRIDGE
+════════════════════════════════════════════════════════════ -->
+<div class="layer l3">
+  <div class="layer-head">
+    <span class="layer-num">Layer 3</span>
+    <span class="layer-name">Dispatch Bridge</span>
+    <span class="layer-tagline">Transforms qualified alert events into structured agent execution payloads · rate limiting · audit logging</span>
+    <span class="layer-macro">Agentic AI Layer</span>
+  </div>
+  <div class="layer-body">
+
+    <!-- card: agent_bridge.py -->
+    <div class="card">
+      <div class="card-title">agent_bridge.py</div>
+      <div class="card-sub">Python · confluent-kafka Consumer</div>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#c4a0ff">Main consumer</div>
+        <p class="mono"><span class="hl">group.id:</span> wxo-trigger-group</p>
+        <p class="mono"><span class="hl">topic:</span> &nbsp;&nbsp;sensor_alerts</p>
+        <p class="mono"><span class="hl">cooldown:</span> 180 s / sensor_id</p>
+        <p class="mono">_dispatch_count seeded at startup</p>
+      </div>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#c4a0ff">Telemetry consumer (daemon)</div>
+        <p class="mono"><span class="hl">group.id:</span> wxo-telemetry-reader</p>
+        <p class="mono"><span class="hl">topic:</span> &nbsp;&nbsp;env_sensor_data</p>
+        <p class="mono"><span class="hl">auto.commit:</span> false</p>
+        <p class="mono">writes → sensor_log.json (~5 s)</p>
+      </div>
+      <p class="mono" style="margin-top:6px"><span class="hl">MAX_LOG_ENTRIES:</span> 500</p>
+      <p class="mono"><span class="hl">WXO_DEBUG_DUMP:</span> 0 (env override)</p>
+    </div>
+
+    <!-- intra-layer: bridge → wxo_client -->
+    <div class="h-conn">
+      <div class="h-conn-row">
+        <div class="h-conn-line" style="background:#8b5cf6"></div>
+        <div class="h-conn-head" style="border-left-color:#8b5cf6"></div>
+      </div>
+      <div class="h-conn-label">prompt<br>build</div>
+    </div>
+
+    <!-- card: wxo_client.py -->
+    <div class="card">
+      <div class="card-title">wxo_client.py</div>
+      <div class="card-sub">urllib · no third-party HTTP libs</div>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#c4a0ff">build_agent_prompt()</div>
+        <p class="mono">Injects RECURRENCE_STATUS header</p>
+        <p class="mono">+ sensor snapshot (5 signals)</p>
+        <p class="mono">+ prior_dispatches count</p>
+        <p class="mono">Token read fresh per call</p>
+      </div>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#c4a0ff">Call 1 — POST chat/completions</div>
+        <p class="mono">POST /api/v1/orchestrate/{id}/</p>
+        <p class="mono">&nbsp;&nbsp;chat/completions</p>
+        <p class="mono">→ final_text + run_id</p>
+        <p class="mono"><span class="hl">timeout:</span> 120 s</p>
+      </div>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#c4a0ff">Call 2 — GET /runs/{run_id}</div>
+        <p class="mono">GET /api/v1/orchestrate/runs/{id}</p>
+        <p class="mono">polls step_history (retries: 5)</p>
+        <p class="mono">extracts DISPATCH_PAYLOAD::{json}</p>
+        <p class="mono">extracts env_report (tool output)</p>
+      </div>
+      <p class="mono" style="margin-top:6px"><span class="hl">WXO_BASE_URL:</span> localhost:4321/api/v1</p>
+      <p class="mono"><span class="hl">creds:</span> ~/.cache/orchestrate/credentials.yaml</p>
+    </div>
+
+    <!-- intra-layer: wxo_client → log files -->
+    <div class="h-conn">
+      <div class="h-conn-row">
+        <div class="h-conn-line" style="background:#475569; border-top: 2px dashed #475569; height:0; background:none"></div>
+        <div class="h-conn-head" style="border-left-color:#475569"></div>
+      </div>
+      <div class="h-conn-label">append<br>JSONL</div>
+    </div>
+
+    <!-- card: persistent log files -->
+    <div class="card">
+      <div class="card-title">Persistent log files</div>
+      <div class="card-sub">Written by bridge · host filesystem</div>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#94a3b8">sensor_log.json</div>
+        <p class="mono">JSONL · rolling 500 entries</p>
+        <p class="mono">fields: ts, sensor_id, 5 signals</p>
+        <p class="mono">written: telemetry thread ~5 s</p>
+        <p class="mono">→ served: GET /log/sensor_log.json</p>
+      </div>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#94a3b8">dashboard_log.json</div>
+        <p class="mono">JSONL · rolling 500 entries</p>
+        <p class="mono">fields: urgency, dept, message,</p>
+        <p class="mono">&nbsp;&nbsp;reasoning, env_report, ts</p>
+        <p class="mono">→ served: GET /log/dashboard_log.json</p>
+      </div>
+      <div class="sub-box" style="border-color:#2a3a58">
+        <div class="sub-title" style="color:#6da0ff">alert_history.json — append-only</div>
+        <p class="mono">JSONL · <strong style="color:#6da0ff">never trimmed</strong></p>
+        <p class="mono">fields: date, ts, sensor_id, urgency,</p>
+        <p class="mono">&nbsp;&nbsp;dept, scenario_signature, message</p>
+        <p class="mono">read by: tools ② ③ in L4</p>
+        <p style="color:#4a6aaa;margin-top:3px">Enables cross-session recurrence reasoning</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     VERTICAL FLOW CONNECTOR  L3 → L4
+     POST chat/completions  ·  Bearer token  ·  JSON body
+     + GET /runs/{id} response path back up (shown as sub-detail)
+     ═══════════════════════════════════════ -->
+<div class="v-flow">
+  <div class="v-flow-side" style="background:linear-gradient(90deg,transparent,#0f62fe)"></div>
+  <div class="v-flow-track">
+    <div class="v-flow-line-top" style="background:#0f62fe"></div>
+    <div class="v-flow-pill c-w">POST /api/v1/orchestrate/{agent_id}/chat/completions</div>
+    <div class="v-flow-sub">Bearer token · JSON body · timeout 120 s → run_id returned → GET /runs/{run_id} · retries: 5 · extracts DISPATCH_PAYLOAD::{json}</div>
+    <div class="v-flow-line-bottom" style="background:#0f62fe"></div>
+    <div class="v-flow-head" style="border-top-color:#0f62fe"></div>
+  </div>
+  <div class="v-flow-side" style="background:linear-gradient(90deg,#0f62fe,transparent)"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     LAYER 4 — AGENTIC AI
+════════════════════════════════════════════════════════════ -->
+<div class="layer l4">
+  <div class="layer-head">
+    <span class="layer-num">Layer 4</span>
+    <span class="layer-name">Agentic AI</span>
+    <span class="layer-tagline">Dynamic root-cause reasoning · knowledge retrieval · tool execution · structured dispatch</span>
+    <span class="layer-macro">Agentic AI Layer</span>
+  </div>
+  <div class="layer-body">
+
+    <!-- card: wxO runtime -->
+    <div class="card">
+      <div class="card-title">wxO Developer Edition</div>
+      <div class="card-sub">orchestrate server start · :4321</div>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#6da0ff">zone_safety_native (native agent)</div>
+        <p class="mono"><span class="hl">kind:</span> &nbsp;&nbsp;native</p>
+        <p class="mono"><span class="hl">style:</span> &nbsp;react_intrinsic (ReAct)</p>
+        <p class="mono"><span class="hl">llm:</span> &nbsp;&nbsp;&nbsp;groq/openai/gpt-oss-120b</p>
+        <p class="mono"><span class="hl">temp:</span> &nbsp;&nbsp;0 · <span class="hl">max_tokens:</span> 3000</p>
+        <p class="mono"><span class="hl">compaction:</span> threshold 8000 tokens</p>
+      </div>
+      <p class="mono" style="margin-top:6px"><span class="hl">ADK:</span> ibm-watsonx-orchestrate 2.17.0</p>
+      <p class="mono"><span class="hl">import:</span> orchestrate agents import -f *.yaml</p>
+      <p class="mono"><span class="hl">tools:</span> orchestrate tools import -k python</p>
+    </div>
+
+    <!-- intra-layer: runtime → ReAct protocol -->
+    <div class="h-conn">
+      <div class="h-conn-row">
+        <div class="h-conn-line" style="background:#0f62fe"></div>
+        <div class="h-conn-head" style="border-left-color:#0f62fe"></div>
+      </div>
+      <div class="h-conn-label">ReAct<br>loop</div>
+    </div>
+
+    <!-- card: 6-step ReAct protocol -->
+    <div class="card">
+      <div class="card-title">6-step ReAct protocol</div>
+      <div class="card-sub">wxo_native_agent.yaml · instructions</div>
+      <p class="mono" style="color:#6da0ff">① check_zone_ambient_conditions</p>
+      <p style="margin-bottom:3px;color:#6e7681">zone-calibrated signal assessment, delta-from-baseline</p>
+      <p class="mono" style="color:#6da0ff">② get_alert_history</p>
+      <p style="margin-bottom:3px;color:#6e7681">cross-session dispatch history + trajectory trend</p>
+      <p class="mono" style="color:#6da0ff">③ get_prior_dispatches</p>
+      <p style="margin-bottom:3px;color:#6e7681">full prior message text — recurrence + escalation logic</p>
+      <p class="mono" style="color:#6da0ff">④ get_zone_equipment_info</p>
+      <p style="margin-bottom:3px;color:#6e7681">extinguisher IDs, valve refs, breaker numbers, ext. numbers</p>
+      <p class="mono" style="color:#6da0ff">⑤ classify dept + urgency</p>
+      <p style="margin-bottom:3px;color:#6e7681">EHS › Mechanics › Electrical › Facilities (priority order)</p>
+      <p class="mono" style="color:#6da0ff">⑥ prepare_dispatch_payload</p>
+      <p style="color:#6e7681">emits DISPATCH_PAYLOAD::{json} for bridge extraction</p>
+    </div>
+
+    <!-- intra-layer: protocol → tools -->
+    <div class="h-conn">
+      <div class="h-conn-row">
+        <div class="h-conn-line" style="background:#0f62fe"></div>
+        <div class="h-conn-head" style="border-left-color:#0f62fe"></div>
+      </div>
+      <div class="h-conn-label">@tool<br>call</div>
+    </div>
+
+    <!-- card: 5 Python tools -->
+    <div class="card">
+      <div class="card-title">5 Tools (@tool Python)</div>
+      <div class="card-sub">wxo_native_tools.py · agents/</div>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#6da0ff">check_zone_ambient_conditions</div>
+        <p class="mono">_ZONE_BASELINES: thresholds + risk notes</p>
+        <p class="mono">5 signals, delta-from-baseline per signal</p>
+      </div>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#6da0ff">get_alert_history + get_prior_dispatches</div>
+        <p class="mono">reads alert_history.json (L3 ledger)</p>
+        <p class="mono">[SYSTEM OVERRIDE] recurrence count</p>
+        <p class="mono">inline-strips forbidden tokens only</p>
+      </div>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#6da0ff">get_zone_equipment_info</div>
+        <p class="mono">_ZONE_REGISTER: embedded string consts</p>
+        <p class="mono">no filesystem access at runtime</p>
+        <p class="mono">source: zone_equipment_register.md</p>
+      </div>
+      <div class="sub-box">
+        <div class="sub-title" style="color:#6da0ff">prepare_dispatch_payload</div>
+        <p class="mono">returns DISPATCH_PAYLOAD::{json}</p>
+        <p class="mono">fields: sensor_id, zone, urgency,</p>
+        <p class="mono">&nbsp;&nbsp;department, alert_message</p>
+      </div>
+    </div>
+
+    <!-- intra-layer: tools → LLM -->
+    <div class="h-conn">
+      <div class="h-conn-row">
+        <div class="h-conn-line" style="background:#059669"></div>
+        <div class="h-conn-head" style="border-left-color:#059669"></div>
+      </div>
+      <div class="h-conn-label">AI<br>Gateway</div>
+    </div>
+
+    <!-- card: dept rules + LLM -->
+    <div class="card" style="flex:0.65">
+      <div class="card-title">Dept rules</div>
+      <div class="card-sub">EHS always takes priority</div>
+      <p class="mono"><span style="color:#fa4d56">EHS:</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;co &gt; 25 OR pm25 &gt; 35</p>
+      <p class="mono"><span style="color:#4589ff">Mechanics:</span> hum &gt; 60 + temp↑</p>
+      <p class="mono"><span style="color:#a56eff">Electrical:</span> hum &lt; 35 + temp↑</p>
+      <p class="mono"><span style="color:#42be65">Facilities:</span> co2 &gt; 1500 | HVAC</p>
+      <p style="margin-top:8px;font-size:0.67rem;color:#6e7681">CRITICAL if CO&gt;25, PM2.5&gt;35, temp above zone alert, or ≥2 signals elevated simultaneously</p>
+      <p style="margin-top:8px"><span class="ok">✓</span> STRICT PROHIBITIONS</p>
+      <p style="color:#6e7681">no scenario labels in output</p>
+      <p style="color:#6e7681">no fabricated hardware IDs</p>
+      <p style="color:#6e7681">no "first occurrence" if N≥1</p>
+      <div class="sub-box" style="margin-top:8px;border-color:#083020">
+        <div class="sub-title" style="color:#059669">LLM: gpt-oss-120b</div>
+        <p class="mono">groq/openai/gpt-oss-120b</p>
+        <p class="mono">via wxO AI Gateway → SaaS</p>
+        <p class="mono"><span class="hl">WO_INSTANCE</span> + <span class="hl">WO_API_KEY</span></p>
+        <p class="mono">alt: Ollama local (llama3.3)</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     VERTICAL FLOW CONNECTOR  L4 → L5
+     bridge writes JSON logs → Express serves /log/ → browser polls every 3 s
+     ═══════════════════════════════════════ -->
+<div class="v-flow">
+  <div class="v-flow-side" style="background:linear-gradient(90deg,transparent,#38bdf8)"></div>
+  <div class="v-flow-track">
+    <div class="v-flow-line-top" style="background:#38bdf8"></div>
+    <div class="v-flow-pill c-h">bridge writes dashboard_log.json + sensor_log.json → Express /log/ endpoints</div>
+    <div class="v-flow-sub">File I/O (append JSONL) → GET /log/*.json · Cache-Control: no-store · browser polls every 3 s (POLL_INTERVAL_MS)</div>
+    <div class="v-flow-line-bottom" style="background:#38bdf8"></div>
+    <div class="v-flow-head" style="border-top-color:#38bdf8"></div>
+  </div>
+  <div class="v-flow-side" style="background:linear-gradient(90deg,#38bdf8,transparent)"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     LAYER 5 — OVERSIGHT
+════════════════════════════════════════════════════════════ -->
+<div class="layer l5">
+  <div class="layer-head">
+    <span class="layer-num">Layer 5</span>
+    <span class="layer-name">Oversight</span>
+    <span class="layer-tagline">Human-in-the-loop · Carbon React dashboard · real-time telemetry · floor plan</span>
+    <span class="layer-macro">Human Layer</span>
+  </div>
+  <div class="layer-body">
+
+    <!-- card: Express server -->
+    <div class="card" style="flex:0.5">
+      <div class="card-title">server.cjs</div>
+      <div class="card-sub">Express · Node.js · :4173</div>
+      <p class="mono"><span class="hl">PORT:</span> 4173</p>
+      <p class="mono">GET /log/dashboard_log.json</p>
+      <p class="mono">GET /log/sensor_log.json</p>
+      <p class="mono"><span class="hl">Cache-Control:</span> no-store</p>
+      <p class="mono"><span class="hl">static:</span> ./frontend/dist/</p>
+      <p class="mono"><span class="hl">SPA fallback:</span> index.html</p>
+      <p class="mono"><span class="hl">build:</span> Vite 5 npm run build</p>
+      <p class="mono"><span class="hl">start:</span> start-dashboard.sh</p>
+    </div>
+
+    <!-- intra-layer: Express → SPA -->
+    <div class="h-conn">
+      <div class="h-conn-row">
+        <div class="h-conn-line" style="background:#38bdf8"></div>
+        <div class="h-conn-head" style="border-left-color:#38bdf8"></div>
+      </div>
+      <div class="h-conn-label">poll<br>3 s</div>
+    </div>
+
+    <!-- card: Tab 1 AI Dispatches -->
+    <div class="card">
+      <div class="card-title">Tab 1 · AI Dispatches</div>
+      <div class="card-sub">Dashboard.jsx · App.jsx polls dashboard_log.json every 3 s</div>
+      <p class="mono">dedup by text compare · last 200 JSONL lines</p>
+      <p class="mono">KPI tiles: Total / Critical / Info / Zones</p>
+      <p class="mono">Zone breakdown cards per sensor_id</p>
+      <p class="mono">Dept breakdown: EHS / Mechanics / Electrical / Facilities</p>
+      <p class="mono">CriticalBanner: latest CRITICAL entry</p>
+      <p class="mono">Accordion: last 20 dispatches</p>
+      <p class="mono">&nbsp;&nbsp;· message &nbsp;&nbsp;(technician action)</p>
+      <p class="mono">&nbsp;&nbsp;· reasoning &nbsp;(full LLM output)</p>
+      <p class="mono">&nbsp;&nbsp;· env_report (tool output)</p>
+      <p class="mono">Dropdown: filter by zone</p>
+      <p class="mono">BoldText.jsx: **..** → &lt;strong&gt;</p>
+    </div>
+
+    <!-- intra-layer: tab separator -->
+    <div class="h-conn">
+      <div class="h-conn-row">
+        <div class="h-conn-line" style="background:#38bdf8"></div>
+        <div class="h-conn-head" style="border-left-color:#38bdf8"></div>
+      </div>
+      <div class="h-conn-label">poll<br>3 s</div>
+    </div>
+
+    <!-- card: Tab 2 Sensor Telemetry -->
+    <div class="card">
+      <div class="card-title">Tab 2 · Sensor Telemetry</div>
+      <div class="card-sub">SensorTelemetry.jsx · polls sensor_log.json every 3 s</div>
+      <p class="mono">rolling: 80 points (~7 min @ 5 s tick)</p>
+      <p class="mono">5 SVG line charts (no npm deps)</p>
+      <p class="mono">metrics: temperature, humidity, CO₂, CO, PM2.5</p>
+      <p class="mono">2 series per chart: CNC + Assembly</p>
+      <p class="mono">warn / crit threshold reference lines</p>
+      <p class="mono">humidity: dual-window band 30–60 %</p>
+      <p class="mono">ToastNotification on new alert (TTL 5 s)</p>
+      <p class="mono">pressure NOT shown (not thresholded)</p>
+      <p class="mono">colours: IBM data-vis palette (Blue 40 / Purple 40)</p>
+    </div>
+
+    <!-- intra-layer: tab separator -->
+    <div class="h-conn">
+      <div class="h-conn-row">
+        <div class="h-conn-line" style="background:#38bdf8"></div>
+        <div class="h-conn-head" style="border-left-color:#38bdf8"></div>
+      </div>
+      <div class="h-conn-label">poll<br>3 s</div>
+    </div>
+
+    <!-- card: Tab 3 Floor Plan -->
+    <div class="card">
+      <div class="card-title">Tab 3 · Floor Plan</div>
+      <div class="card-sub">FloorPlan.jsx · polls both log files every 3 s</div>
+      <p class="mono">SVG hall floor plan (2-zone partition)</p>
+      <p class="mono">sensor node overlays (CNC west, ASSY east)</p>
+      <p class="mono">status derived from latest dispatch</p>
+      <p class="mono">&nbsp;&nbsp;+ latest sensor reading</p>
+      <p class="mono">states: ok / warning / critical / unknown</p>
+      <p class="mono">ZoneRect: coloured background by zone status</p>
+      <p class="mono">click node → SensorDetail side panel</p>
+      <p class="mono">thresholds inlined (THRESHOLDS const)</p>
+    </div>
+
+    <!-- card: Build toolchain -->
+    <div class="card" style="flex:0.55">
+      <div class="card-title">Build toolchain</div>
+      <div class="card-sub">Carbon React v11 · Vite 5</div>
+      <p class="mono"><span class="hl">framework:</span> React 18</p>
+      <p class="mono"><span class="hl">build:</span> &nbsp;&nbsp;&nbsp;Vite 5</p>
+      <p class="mono"><span class="hl">ui lib:</span> &nbsp;@carbon/react ^1</p>
+      <p class="mono"><span class="hl">icons:</span> &nbsp;&nbsp;@carbon/icons-react</p>
+      <p class="mono"><span class="hl">theme:</span> &nbsp;&nbsp;g90 (dark)</p>
+      <p class="mono"><span class="hl">output:</span> &nbsp;frontend/dist/</p>
+      <p style="margin-top:8px;color:#38bdf8;font-weight:600">http://localhost:4173</p>
+      <p style="color:#6e7681">No WebSocket — browser polls JSON files every 3 s</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Reading guide ── -->
+<div class="guide">
+  <strong>Reading guide</strong> —
+  The diagram follows the 5-layer enterprise blueprint top-to-bottom.
+  <strong>L1 Ingestion:</strong> Two Python producers emit a 5-signal JSON tick every 5 s to Kafka <code>env_sensor_data</code> (KRaft, port 9092).
+  <strong>L2 Token Shield:</strong> Flink SQL 60 s tumbling window AVGs 12 readings before evaluating zone-specific HAVING thresholds — single spikes (e.g. CHIP_BLOWOFF) are absorbed; scenario labels never leave this layer. Qualified events write to <code>sensor_alerts</code>.
+  <strong>L3 Dispatch Bridge:</strong> <code>agent_bridge.py</code> consumes <code>sensor_alerts</code> (group: wxo-trigger-group), enforces 180 s ISA-18.2 cooldown, builds a structured prompt (RECURRENCE_STATUS + 5-signal snapshot + prior_dispatches count) via <code>wxo_client.py</code>, then issues two calls to wxO: POST chat/completions → GET /runs/{run_id}. Results are appended to <code>dashboard_log.json</code>; raw telemetry to <code>sensor_log.json</code>; permanent ledger to <code>alert_history.json</code>.
+  <strong>L4 Agentic AI:</strong> The <code>zone_safety_native</code> native agent (react_intrinsic, gpt-oss-120b at temp 0) executes a fixed 6-step ReAct protocol using 5 deterministic Python tools. Tools ②③ read <code>alert_history.json</code> for cross-session recurrence reasoning. Tool ⑥ emits <code>DISPATCH_PAYLOAD::{json}</code> extracted by the bridge.
+  <strong>L5 Oversight:</strong> Express (:4173) serves two rolling JSONL files with <code>Cache-Control: no-store</code>. The Carbon React SPA (g90 dark, React 18, Vite 5) polls every 3 s — no WebSocket push. Three tabs: AI Dispatches (accordion, KPI tiles, dept breakdown), Sensor Telemetry (5 SVG charts, threshold lines), Floor Plan (SVG 2-zone map, click-to-detail).
+</div>
+
+</body>
+</html>
